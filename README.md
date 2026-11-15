@@ -33,7 +33,7 @@ This project is built as a **single, self-contained HTML file** with zero extern
 
 1. Clone or download the repository:
 ```bash
-git clone https://github.com/your-username/economia-ecb-replica.git
+git clone https://github.com/guidezg/economia.git
 ```
 2. Open `economia_the_monetary_policy_game.html` in any modern web browser.
 3. Click **ENTER**, register your name and age for the Hall of Fame, and start your mandate!
