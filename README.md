@@ -29,7 +29,7 @@ Your primary mandate is to keep annual inflation **below, but close to, 2.00%** 
 
 ## 🚀 Getting Started
 
-This project is built as a **single, self-contained HTML file** with zero external dependencies, build steps, or assets required. Available through GitHub Pages.
+This project is built as a **single, self-contained HTML file** with zero external dependencies, build steps, or assets required. Playable through GitHub Pages.
 
 ---
 
