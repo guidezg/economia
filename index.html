@@ -1,0 +1,4969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>€conomia – The Monetary Policy Game (ECB Replica)</title>
+  <style>
+    /* ==========================================================================
+       STEP 1.1: DESIGN SYSTEM, CSS VARIABLES & STAGE BOILERPLATE
+       ========================================================================== */
+    :root {
+      /* Core ECB & Game Palette */
+      --bg-outer: #1d262d;
+      --stage-bg-top: #dce6e0;
+      --stage-bg-bottom: #c2d1c8;
+      --panel-bg: #f4f7f5;
+      --panel-border: #b5c4bc;
+
+      --ecb-navy: #143366;
+      --ecb-navy-dark: #0c2144;
+      --ecb-navy-light: #255096;
+      --ecb-cyan: #0088cc;
+      --euro-gold: #f5b800;
+      --euro-gold-light: #ffe066;
+
+      /* Indicator Colors (Matching Original Game) */
+      --rate-blue: #1e5aa8;
+      --inflation-gold: #e09f00;
+      --prod-brown: #7a4b2a;
+      --money-green: #538135;
+      --unemp-grey: #5a6978;
+
+      /* Status & Alert Colors */
+      --alert-red: #d92b2b;
+      --stable-green: #3ca638;
+      --warn-amber: #f09c14;
+
+      /* Typography */
+      --font-main: "Trebuchet MS", "Lucida Sans Unicode", "Segoe UI", Arial, sans-serif;
+
+      /* Fixed Reference Dimensions */
+      --stage-w: 960px;
+      --stage-h: 640px;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, #2c3942 0%, var(--bg-outer) 100%);
+      font-family: var(--font-main);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Responsive Scaler Wrapper */
+    #stage-wrapper {
+      width: var(--stage-w);
+      height: var(--stage-h);
+      position: relative;
+      transform-origin: center center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      overflow: hidden;
+      background: linear-gradient(180deg, var(--stage-bg-top) 0%, var(--stage-bg-bottom) 100%);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #stage-wrapper::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(20, 51, 102, 0.04) 1px, transparent 0);
+      background-size: 16px 16px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ==========================================================================
+       STEP 1.2: TOP HEADER BAR (LOGO, 8-YEAR TIMELINE, STABILITY GAUGE)
+       ========================================================================== */
+    #top-header {
+      position: relative;
+      z-index: 10;
+      height: 78px;
+      width: 100%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 0 14px 0 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(225,235,229,0.35) 100%);
+      border-bottom: 1px solid rgba(20, 51, 102, 0.14);
+    }
+
+    .brand-cluster {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .logo-badge {
+      background: linear-gradient(180deg, #ffffff 0%, #edf2f0 100%);
+      border-right: 1px solid #b8c7bf;
+      border-bottom: 2px solid #9ab0a5;
+      border-bottom-right-radius: 14px;
+      padding: 6px 16px 6px 14px;
+      box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: filter 0.15s;
+    }
+
+    .logo-badge:hover {
+      filter: brightness(1.03);
+    }
+
+    .logo-title {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      line-height: 1;
+      color: var(--ecb-navy);
+      display: flex;
+      align-items: baseline;
+    }
+
+    .logo-title .euro-sym {
+      color: #0077b5;
+      font-size: 25px;
+      margin-right: 1px;
+    }
+
+    .logo-subtitle {
+      margin-top: 3px;
+      background: var(--ecb-navy);
+      color: #ffffff;
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 1.1px;
+      padding: 2px 5px;
+      border-radius: 2px;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .utility-buttons {
+      display: flex;
+      gap: 5px;
+      margin-top: 5px;
+      margin-left: 10px;
+      align-items: center;
+    }
+
+    .util-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      border: 1px solid var(--ecb-navy-dark);
+      background: linear-gradient(180deg, var(--ecb-navy-light) 0%, var(--ecb-navy) 100%);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      transition: transform 0.1s, filter 0.15s;
+      padding: 0;
+    }
+
+    .util-btn:hover {
+      filter: brightness(1.15);
+    }
+
+    .util-btn:active {
+      transform: translateY(1px);
+    }
+
+    .util-btn.muted {
+      background: #6c7a86;
+      border-color: #4b565f;
+    }
+
+    .president-tag {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--ecb-navy);
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid #b5c4bc;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-left: 2px;
+      max-width: 115px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Center Cluster: 8-Year / 32-Quarter Timeline */
+    .timeline-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 5px 12px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(20, 51, 102, 0.18);
+      border-radius: 8px;
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    }
+
+    .year-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2px 5px;
+      border-radius: 4px;
+      position: relative;
+      transition: background 0.2s;
+    }
+
+    .year-block.active-year {
+      background: rgba(30, 90, 168, 0.12);
+    }
+
+    .year-star-slot {
+      width: 16px;
+      height: 16px;
+      margin-bottom: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .star-icon {
+      width: 15px;
+      height: 15px;
+      fill: rgba(20, 51, 102, 0.15);
+      stroke: rgba(20, 51, 102, 0.25);
+      stroke-width: 1;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), fill 0.3s;
+    }
+
+    .star-icon.earned {
+      fill: var(--euro-gold);
+      stroke: #b57c00;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+      transform: scale(1.12);
+    }
+
+    .year-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #4f6373;
+      letter-spacing: 0.3px;
+      margin-bottom: 4px;
+    }
+
+    .year-block.active-year .year-label {
+      color: var(--ecb-navy);
+    }
+
+    .quarter-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .q-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: #c5d1cc;
+      border: 1px solid #96a8a0;
+      transition: all 0.2s;
+    }
+
+    .q-dot.passed {
+      background: var(--rate-blue);
+      border-color: var(--ecb-navy);
+    }
+
+    .q-dot.current {
+      background: var(--euro-gold);
+      border-color: #9e6b00;
+      box-shadow: 0 0 5px var(--euro-gold);
+      transform: scale(1.18);
+    }
+
+    /* Right Cluster: Stability Speedometer Gauge */
+    .gauge-cluster {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 4px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(20, 51, 102, 0.2);
+      border-radius: 10px;
+      padding: 4px 10px 3px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+    }
+
+    .gauge-svg {
+      width: 108px;
+      height: 54px;
+      overflow: visible;
+    }
+
+    #gauge-needle {
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      transform-origin: 60px 52px;
+    }
+
+    .gauge-caption {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--ecb-navy);
+      margin-top: -2px;
+    }
+
+    /* ==========================================================================
+       MAIN VIEWPORT AREA
+       ========================================================================== */
+    #viewport {
+      position: relative;
+      z-index: 5;
+      flex: 1;
+      width: 100%;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .game-view {
+      display: none;
+      width: 100%;
+      height: 100%;
+      padding: 10px 14px;
+      position: relative;
+    }
+
+    .game-view.active {
+      display: flex;
+    }
+
+    /* ==========================================================================
+       STEP 3.1 & 3.2: MAP VIEW (LEFT DATA DASHBOARD + RIGHT 3D ISOMETRIC MAP)
+       ========================================================================== */
+    .map-view-layout {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 430px 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .map-left-column {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      height: 100%;
+    }
+
+    .euro-data-card {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #b4c5bc;
+      border-radius: 8px;
+      padding: 8px 10px 6px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .euro-data-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #dde6e1;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+    }
+
+    .euro-data-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--ecb-navy);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .chart-legend-inline {
+      display: flex;
+      gap: 8px;
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #425563;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-swatch {
+      width: 10px;
+      height: 3.5px;
+      border-radius: 1px;
+    }
+
+    .euro-chart-wrap {
+      width: 100%;
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #map-main-chart {
+      width: 100%;
+      height: 205px;
+      overflow: visible;
+      display: block;
+    }
+
+    .map-pills-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .map-pills-row2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .metric-pill {
+      border-radius: 6px;
+      padding: 5px 9px;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-pill.rate-pill {
+      background: linear-gradient(180deg, #2868bd 0%, #194787 100%);
+      border: 1px solid #103263;
+    }
+
+    .metric-pill.infl-pill {
+      background: linear-gradient(180deg, #e8aa14 0%, #c48800 100%);
+      border: 1px solid #966600;
+    }
+
+    .metric-pill.prod-pill {
+      background: linear-gradient(180deg, #8f5a34 0%, #693f21 100%);
+      border: 1px solid #4d2c15;
+    }
+
+    .metric-pill.money-pill {
+      background: linear-gradient(180deg, #629640 0%, #446e29 100%);
+      border: 1px solid #30521b;
+    }
+
+    .metric-pill.unemp-pill {
+      background: linear-gradient(180deg, #6c7d8c 0%, #4d5b66 100%);
+      border: 1px solid #37424a;
+    }
+
+    .metric-pill-title {
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      opacity: 0.92;
+    }
+
+    .metric-pill-bottom {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-top: 2px;
+    }
+
+    .metric-pill-value {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+    }
+
+    .metric-pill-delta {
+      font-size: 9.5px;
+      font-weight: 800;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    /* Right Column: 3D Isometric Eurozone Map Stage */
+    .map-right-stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      border: 1px solid #9eb3a8;
+      background: radial-gradient(circle at 55% 42%, #d8ece8 0%, #9dc4c2 65%, #7ba6a8 100%);
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.12), 0 3px 10px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .map-right-stage.theme-bear {
+      background: radial-gradient(circle at 55% 42%, #ebe3d5 0%, #b8b09c 68%, #8c8676 100%);
+    }
+
+    .map-right-stage.theme-flood {
+      background: radial-gradient(circle at 55% 42%, #b5d0db 0%, #6996ab 68%, #476f85 100%);
+    }
+
+    .map-right-stage.theme-winter {
+      background: radial-gradient(circle at 55% 42%, #eef6fa 0%, #bdd4e3 68%, #90b0c7 100%);
+    }
+
+    #euro-isometric-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .turbine-blades {
+      transform-origin: 0px 0px;
+      animation: spinBlades 4.5s linear infinite;
+    }
+
+    @keyframes spinBlades {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .rain-line {
+      stroke: rgba(255, 255, 255, 0.55);
+      stroke-width: 1.5;
+      stroke-dasharray: 10 14;
+      animation: rainFall 0.9s linear infinite;
+    }
+
+    @keyframes rainFall {
+      from { stroke-dashoffset: 24; }
+      to { stroke-dashoffset: 0; }
+    }
+
+    .map-overlay-top {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 12;
+    }
+
+    .map-status-chip {
+      pointer-events: auto;
+      background: rgba(20, 51, 102, 0.85);
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 14px;
+      letter-spacing: 0.4px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .map-debug-bar {
+      pointer-events: auto;
+      display: flex;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.82);
+      padding: 3px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(20, 51, 102, 0.2);
+    }
+
+    .mini-shock-btn {
+      border: 1px solid #9ab0a5;
+      background: #ffffff;
+      color: var(--ecb-navy);
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 2px 5px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .mini-shock-btn:hover {
+      background: var(--ecb-navy);
+      color: #ffffff;
+    }
+
+    #map-shock-popup {
+      position: absolute;
+      right: 14px;
+      bottom: 12px;
+      width: 255px;
+      background: #ffffff;
+      border: 2px solid var(--ecb-navy);
+      border-radius: 8px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.42);
+      z-index: 25;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: shockPopIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #map-shock-popup.hidden {
+      display: none;
+    }
+
+    @keyframes shockPopIn {
+      from { transform: scale(0.8) translateY(20px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .shock-popup-art {
+      width: 100%;
+      height: 92px;
+      background: linear-gradient(180deg, #dce8f2 0%, #b8cde0 100%);
+      border-bottom: 1px solid #c5d4cd;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .shock-popup-body {
+      padding: 9px 12px 10px;
+    }
+
+    .shock-popup-title {
+      margin: 0 0 4px 0;
+      font-size: 13.5px;
+      font-weight: 900;
+      color: var(--ecb-navy);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .shock-popup-desc {
+      margin: 0 0 8px 0;
+      font-size: 11px;
+      line-height: 1.38;
+      color: #334350;
+    }
+
+    .shock-popup-close {
+      align-self: flex-end;
+      background: linear-gradient(180deg, #2b5cb0 0%, #133063 100%);
+      color: #ffffff;
+      border: 1px solid #0c2144;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 4px 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      float: right;
+    }
+
+    .shock-popup-close:hover {
+      filter: brightness(1.15);
+    }
+
+    /* ==========================================================================
+       STEP 3.3: INDICATORS THREE-PANEL FORECAST VIEW
+       ========================================================================== */
+    .indicators-three-grid {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .ind-chart-card {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #b4c4bc;
+      border-radius: 8px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .ind-card-header {
+      padding: 8px 12px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ind-card-header.money-hdr {
+      background: linear-gradient(180deg, #629640 0%, #446e29 100%);
+    }
+
+    .ind-card-header.infl-hdr {
+      background: linear-gradient(180deg, #e5a510 0%, #c28600 100%);
+    }
+
+    .ind-card-header.prod-hdr {
+      background: linear-gradient(180deg, #8f5a34 0%, #693f21 100%);
+    }
+
+    .ind-card-title {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .ind-card-current {
+      font-size: 13px;
+      font-weight: 900;
+      background: rgba(0, 0, 0, 0.22);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .ind-svg-container {
+      flex: 1;
+      width: 100%;
+      padding: 8px 8px 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ind-panel-svg {
+      width: 100%;
+      height: 285px;
+      overflow: visible;
+      display: block;
+    }
+
+    .ind-card-footer {
+      background: #edf3f0;
+      border-top: 1px solid #d5e2dc;
+      padding: 7px 10px;
+      font-size: 10.5px;
+      color: #394b58;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+    }
+
+    /* ==========================================================================
+       STEP 4.1: YOUR TEAM VIEW (COUNCIL TABLE & 5 ADVISOR PERSONA CARDS)
+       ========================================================================== */
+    .team-stage-wrap {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background: linear-gradient(180deg, #cadad2 0%, #dfeae4 55%, #b5c7be 100%);
+      border: 1px solid #9eb2a8;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    .team-top-banner {
+      position: relative;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.78);
+      border-bottom: 1px solid rgba(20, 51, 102, 0.15);
+    }
+
+    .team-top-title {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--ecb-navy);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0;
+    }
+
+    .team-top-hint {
+      font-size: 11px;
+      font-weight: 700;
+      color: #3f5566;
+    }
+
+    .council-room-canvas {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #council-room-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .advisor-seat-group {
+      cursor: pointer;
+      transition: transform 0.18s ease, filter 0.18s ease;
+    }
+
+    .advisor-seat-group:hover {
+      filter: brightness(1.08) drop-shadow(0 4px 8px rgba(20, 51, 102, 0.32));
+    }
+
+    .advisor-pin {
+      animation: advisorPinFloat 1.5s infinite ease-in-out;
+    }
+
+    @keyframes advisorPinFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+
+    .advisor-quick-strip {
+      position: relative;
+      z-index: 6;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      padding: 7px 12px;
+      background: rgba(255, 255, 255, 0.85);
+      border-top: 1px solid #b5c6bd;
+    }
+
+    .advisor-chip-btn {
+      background: #ffffff;
+      border: 1px solid #aec2b7;
+      border-radius: 6px;
+      padding: 5px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: left;
+    }
+
+    .advisor-chip-btn:hover {
+      background: #edf5f0;
+      border-color: var(--ecb-navy);
+      transform: translateY(-1px);
+    }
+
+    .advisor-chip-meta {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .advisor-chip-role {
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: var(--ecb-navy);
+      letter-spacing: 0.4px;
+    }
+
+    .advisor-chip-status {
+      font-size: 10px;
+      font-weight: 700;
+      color: #4f6373;
+      margin-top: 1px;
+    }
+
+    .advisor-chip-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #1e5aa8;
+      color: #ffffff;
+      font-family: Georgia, serif;
+      font-style: italic;
+      font-size: 11px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .advisor-chip-dot.urgent {
+      background: #d92b2b;
+      box-shadow: 0 0 6px rgba(217, 43, 43, 0.5);
+    }
+
+    #advisor-detail-modal {
+      position: absolute;
+      inset: 12px;
+      background: #ffffff;
+      border: 2px solid var(--ecb-navy);
+      border-radius: 10px;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+      z-index: 20;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      overflow: hidden;
+      animation: shockPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #advisor-detail-modal.hidden {
+      display: none;
+    }
+
+    .advisor-portrait-stage {
+      background: linear-gradient(180deg, #dce8f0 0%, #b8cddb 100%);
+      border-right: 1px solid #c2d1ca;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px;
+      position: relative;
+    }
+
+    .advisor-portrait-svg-wrap {
+      width: 100%;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .advisor-metric-pill-box {
+      width: 100%;
+      background: rgba(20, 51, 102, 0.9);
+      color: #ffffff;
+      border-radius: 6px;
+      padding: 7px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      font-weight: 800;
+    }
+
+    .advisor-speech-stage {
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: linear-gradient(180deg, #ffffff 0%, #f4f8f6 100%);
+    }
+
+    .advisor-role-tag {
+      display: inline-block;
+      background: #e3ede8;
+      color: var(--ecb-navy);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      padding: 3px 9px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .advisor-name-heading {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--ecb-navy);
+      margin: 0 0 10px 0;
+    }
+
+    .advisor-quote-bubble {
+      background: #ffffff;
+      border-left: 5px solid var(--ecb-cyan);
+      border-radius: 6px;
+      padding: 12px 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      margin-bottom: 12px;
+    }
+
+    .advisor-quote-headline {
+      font-size: 16px;
+      font-weight: 900;
+      color: #143366;
+      margin: 0 0 6px 0;
+    }
+
+    .advisor-quote-body {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #2e3f4d;
+      margin: 0;
+    }
+
+    .advisor-Tactical-box {
+      background: #eef4f1;
+      border: 1px solid #cad8d0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #344756;
+      line-height: 1.45;
+    }
+
+    .advisor-modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #dce6e0;
+    }
+
+    .advisor-nav-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .adv-btn {
+      background: #e6efe9;
+      border: 1px solid #9ab0a4;
+      color: var(--ecb-navy);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-family: var(--font-main);
+      transition: all 0.15s;
+    }
+
+    .adv-btn:hover {
+      background: var(--ecb-navy);
+      color: #ffffff;
+    }
+
+    .adv-btn.primary {
+      background: linear-gradient(180deg, #2b5cb0 0%, #133063 100%);
+      color: #ffffff;
+      border-color: #0c2144;
+    }
+
+    .adv-btn.gold {
+      background: linear-gradient(180deg, #ffd230 0%, #d49600 100%);
+      color: #0c2144;
+      border-color: #9e6b00;
+    }
+
+    /* ==========================================================================
+       STEP 4.2: PRESS ROOM VIEW (THREE DYNAMIC NEWSPAPER FRONT PAGES)
+       ========================================================================== */
+    .press-room-stage {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      position: relative;
+    }
+
+    .press-Three-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      align-items: stretch;
+      padding: 2px 4px;
+    }
+
+    .newspaper-sheet {
+      background: linear-gradient(180deg, #fcfaf2 0%, #f2ebd9 100%);
+      border: 1px solid #b8ae96;
+      border-radius: 4px;
+      box-shadow: 0 5px 14px rgba(0, 0, 0, 0.18), inset 0 0 24px rgba(166, 148, 112, 0.12);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .newspaper-sheet:nth-child(1) { transform: rotate(-0.7deg); }
+    .newspaper-sheet:nth-child(2) { transform: rotate(0.3deg); }
+    .newspaper-sheet:nth-child(3) { transform: rotate(-0.4deg); }
+
+    .newspaper-sheet:hover {
+      transform: rotate(0deg) translateY(-3px) scale(1.01);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+      z-index: 5;
+    }
+
+    .paper-masthead {
+      border-bottom: 2px solid #2b2925;
+      padding-bottom: 3px;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+
+    .paper-name {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      color: #1f1d1a;
+      text-transform: uppercase;
+      line-height: 1.05;
+    }
+
+    .paper-meta-strip {
+      display: flex;
+      justify-content: space-between;
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #5c564b;
+      border-top: 1px solid #8c8475;
+      margin-top: 3px;
+      padding-top: 2px;
+      text-transform: uppercase;
+    }
+
+    .paper-headline {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 14.5px;
+      font-weight: 900;
+      line-height: 1.15;
+      color: #141311;
+      margin: 4px 0 3px 0;
+    }
+
+    .paper-subdeck {
+      font-size: 10px;
+      font-weight: 700;
+      color: #3d3932;
+      line-height: 1.25;
+      margin: 0 0 6px 0;
+      font-style: italic;
+    }
+
+    .paper-photo-frame {
+      width: 100%;
+      height: 96px;
+      border: 1px solid #8c8475;
+      background: #e6dfd1;
+      margin-bottom: 6px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .paper-columns {
+      column-count: 2;
+      column-gap: 10px;
+      column-rule: 1px solid #d4cbb8;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 9.6px;
+      line-height: 1.36;
+      color: #292622;
+      flex: 1;
+      overflow: hidden;
+      text-align: justify;
+    }
+
+    .paper-columns p {
+      margin: 0 0 5px 0;
+    }
+
+    .paper-footer-tag {
+      margin-top: 4px;
+      padding-top: 3px;
+      border-top: 1px dotted #a89f8d;
+      display: flex;
+      justify-content: space-between;
+      font-size: 8.5px;
+      font-weight: 800;
+      color: #143366;
+      text-transform: uppercase;
+    }
+
+    #press-zoom-modal {
+      position: absolute;
+      inset: 10px 90px;
+      background: linear-gradient(180deg, #fcfaf2 0%, #f2ebd9 100%);
+      border: 2px solid #2b2925;
+      border-radius: 6px;
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.5);
+      z-index: 25;
+      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      animation: shockPopIn 0.22s ease-out;
+    }
+
+    #press-zoom-modal.hidden {
+      display: none;
+    }
+
+    /* ==========================================================================
+       STEP 4.3: GLOSSARY VIEW (INTERACTIVE MONETARY POLICY ENCYCLOPEDIA)
+       ========================================================================== */
+    .glossary-layout {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 270px 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .glossary-sidebar {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #b4c4bc;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .glossary-search-box {
+      padding: 8px 10px;
+      background: var(--ecb-navy);
+      color: #ffffff;
+    }
+
+    .glossary-search-input {
+      width: 100%;
+      padding: 5px 8px;
+      border-radius: 4px;
+      border: 1px solid #0c2144;
+      font-family: var(--font-main);
+      font-size: 11.5px;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .glossary-term-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .glossary-term-btn {
+      width: 100%;
+      text-align: left;
+      padding: 7px 10px;
+      border-radius: 5px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--ecb-navy);
+      font-family: var(--font-main);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.12s;
+    }
+
+    .glossary-term-btn:hover {
+      background: #e6f0eb;
+    }
+
+    .glossary-term-btn.active {
+      background: linear-gradient(180deg, #255096 0%, #143366 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+
+    .glossary-article-card {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #b4c4bc;
+      border-radius: 8px;
+      padding: 16px 22px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+    }
+
+    .glossary-art-header {
+      border-bottom: 2px solid #dce6e0;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+
+    .glossary-art-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--ecb-navy);
+      margin: 0;
+    }
+
+    .glossary-art-category {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      background: #e3ede8;
+      color: var(--ecb-navy);
+      padding: 3px 8px;
+      border-radius: 10px;
+    }
+
+    .glossary-body-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+      align-items: center;
+      flex: 1;
+    }
+
+    .glossary-text-col p {
+      font-size: 12.8px;
+      line-height: 1.52;
+      color: #2c3e4c;
+      margin: 0 0 10px 0;
+    }
+
+    .glossary-diagram-box {
+      background: #f2f7f4;
+      border: 1px solid #c9d9d0;
+      border-radius: 8px;
+      padding: 10px;
+      height: 185px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .glossary-tip-banner {
+      background: #fff8e0;
+      border-left: 4px solid var(--euro-gold);
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 11.5px;
+      color: #3b4c59;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    /* ==========================================================================
+       STEP 1.3A: PERSISTENT KEY INTEREST RATE CONTROL BAR
+       ========================================================================== */
+    #rate-control-bar {
+      position: relative;
+      z-index: 15;
+      height: 54px;
+      width: 100%;
+      background: linear-gradient(180deg, #e3ece7 0%, #c8d6ce 100%);
+      border-top: 1px solid #ffffff;
+      border-bottom: 1px solid #8fa398;
+      display: flex;
+      align-items: center;
+      padding: 0 14px 0 24px;
+      gap: 16px;
+    }
+
+    .slider-track-wrapper {
+      position: relative;
+      flex: 1;
+      height: 100%;
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 7px;
+      cursor: pointer;
+    }
+
+    .slider-ticks {
+      width: 100%;
+      height: 22px;
+      position: relative;
+      border-bottom: 3px solid var(--ecb-navy);
+    }
+
+    .tick-mark {
+      position: absolute;
+      bottom: 0;
+      width: 1px;
+      background: #6c8075;
+      transform: translateX(-50%);
+    }
+
+    .tick-mark.major {
+      height: 10px;
+      width: 2px;
+      background: var(--ecb-navy);
+    }
+
+    .tick-mark.medium {
+      height: 7px;
+      background: #485e53;
+    }
+
+    .tick-mark.minor {
+      height: 4px;
+      background: #7d9186;
+    }
+
+    .tick-label {
+      position: absolute;
+      bottom: 12px;
+      transform: translateX(-50%);
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--ecb-navy);
+      pointer-events: none;
+    }
+
+    #slider-fill {
+      position: absolute;
+      left: 0;
+      bottom: -3px;
+      height: 5px;
+      background: var(--ecb-cyan);
+      width: 10%;
+      pointer-events: none;
+    }
+
+    #slider-callout {
+      position: absolute;
+      bottom: 11px;
+      left: 10%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, var(--ecb-navy-light) 0%, var(--ecb-navy-dark) 100%);
+      border: 1px solid #081833;
+      border-radius: 6px;
+      padding: 3px 6px 4px;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+      z-index: 20;
+      min-width: 132px;
+      cursor: grab;
+    }
+
+    #slider-callout:active {
+      cursor: grabbing;
+    }
+
+    #slider-callout::after {
+      content: "";
+      position: absolute;
+      bottom: -7px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 7px 7px 0 7px;
+      border-style: solid;
+      border-color: var(--ecb-navy-dark) transparent transparent transparent;
+    }
+
+    .callout-title {
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      color: #a8c8f0;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .callout-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 6px;
+    }
+
+    .step-btn {
+      width: 20px;
+      height: 20px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.15s;
+    }
+
+    .step-btn:hover {
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    .step-btn:active {
+      transform: scale(0.94);
+    }
+
+    #rate-display-value {
+      font-size: 15px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: 0.4px;
+      min-width: 58px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+
+    #action-ok-btn {
+      width: 96px;
+      height: 38px;
+      border-radius: 6px;
+      border: 1px solid var(--ecb-navy-dark);
+      background: linear-gradient(180deg, #2b5cb0 0%, #133063 100%);
+      color: #ffffff;
+      font-family: var(--font-main);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      transition: filter 0.15s, transform 0.1s;
+    }
+
+    #action-ok-btn:hover {
+      filter: brightness(1.12);
+    }
+
+    #action-ok-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* ==========================================================================
+       STEP 1.3B: FIVE-PAGE HOTBAR NAVIGATION & SYSTEM FOOTER
+       ========================================================================== */
+    #hotbar-nav {
+      position: relative;
+      z-index: 10;
+      height: 62px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: #cfd9d3;
+      border-top: 1px solid #f2f6f4;
+    }
+
+    .hotbar-tab {
+      position: relative;
+      border: none;
+      border-right: 1px solid #9aaaa2;
+      background: linear-gradient(180deg, #f7faf8 0%, #d5e0da 100%);
+      color: var(--ecb-navy);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      padding: 6px 4px 4px;
+      transition: background 0.15s, color 0.15s;
+      box-shadow: inset 0 1px 0 #ffffff;
+    }
+
+    .hotbar-tab:last-child {
+      border-right: none;
+    }
+
+    .hotbar-tab:hover:not(.active) {
+      background: linear-gradient(180deg, #ffffff 0%, #e2ece7 100%);
+    }
+
+    .hotbar-tab.active {
+      background: linear-gradient(180deg, #1e4585 0%, #10274d 100%);
+      color: #ffffff;
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45);
+    }
+
+    .tab-icon {
+      width: 28px;
+      height: 24px;
+      fill: currentColor;
+      transition: transform 0.15s;
+    }
+
+    .hotbar-tab:hover .tab-icon {
+      transform: translateY(-1px);
+    }
+
+    .tab-label {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .tab-badge {
+      position: absolute;
+      top: 6px;
+      right: 26px;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #ff4d4d 0%, #bd1919 100%);
+      border: 1.5px solid #ffffff;
+      color: #ffffff;
+      font-family: Georgia, serif;
+      font-style: italic;
+      font-size: 11px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      animation: badgePulse 1.6s infinite ease-in-out;
+    }
+
+    .tab-badge.hidden {
+      display: none;
+    }
+
+    @keyframes badgePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.14); }
+    }
+
+    /* System Footer Strip */
+    #system-footer {
+      position: relative;
+      z-index: 60;
+      height: 24px;
+      width: 100%;
+      background: #363d42;
+      color: #c8d2d9;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 14px;
+      gap: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .footer-link {
+      color: #c8d2d9;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.15s;
+      text-transform: uppercase;
+    }
+
+    .footer-link:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    .footer-sep {
+      color: #67737c;
+    }
+
+    .footer-right {
+      margin-left: auto;
+      color: #8fa0ab;
+      font-size: 9.5px;
+    }
+
+    /* ==========================================================================
+       STEP 5.1: WELCOME SCREEN, REGISTRATION MODAL & 10-DOT SCENARIO LOADER
+       ========================================================================== */
+    .full-stage-overlay {
+      position: absolute;
+      inset: 0 0 24px 0; /* Leaves the 24px system footer visible at bottom, just like original €conomia */
+      z-index: 45;
+      background: linear-gradient(180deg, #e4ede8 0%, #c2d2c9 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 36px;
+      overflow: hidden;
+    }
+
+    .full-stage-overlay.hidden {
+      display: none !important;
+    }
+
+    .welcome-hero-logo {
+      text-align: center;
+      z-index: 2;
+      margin-top: 6px;
+    }
+
+    .welcome-logo-main {
+      font-size: 56px;
+      font-weight: 900;
+      color: var(--ecb-navy);
+      letter-spacing: 1px;
+      line-height: 1;
+      text-shadow: 0 2px 0 #ffffff, 0 4px 12px rgba(20, 51, 102, 0.15);
+    }
+
+    .welcome-logo-main .euro-sym {
+      color: #0088cc;
+      font-size: 62px;
+      margin-right: 2px;
+    }
+
+    .welcome-logo-ribbon {
+      display: inline-block;
+      margin-top: 6px;
+      background: var(--ecb-navy);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 2.2px;
+      padding: 4px 16px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .welcome-art-container {
+      width: 780px;
+      height: 310px;
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .welcome-bottom-bar {
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .welcome-tagline {
+      font-size: 14px;
+      font-weight: 800;
+      color: #263b4d;
+      text-align: center;
+      max-width: 620px;
+      margin: 0;
+    }
+
+    .btn-enter-game {
+      min-width: 190px;
+      height: 46px;
+      border-radius: 8px;
+      border: 2px solid #0c2144;
+      background: linear-gradient(180deg, #2d63bd 0%, #143366 100%);
+      color: #ffffff;
+      font-family: var(--font-main);
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(20, 51, 102, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: transform 0.12s, filter 0.15s;
+    }
+
+    .btn-enter-game:hover {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
+    }
+
+    .btn-enter-game:active {
+      transform: translateY(1px);
+    }
+
+    /* Modal Backdrop Inside Stage */
+    .stage-modal-backdrop {
+      position: absolute;
+      inset: 0 0 24px 0;
+      z-index: 50;
+      background: rgba(12, 33, 68, 0.62);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .stage-modal-backdrop.hidden {
+      display: none !important;
+    }
+
+    .ecb-modal-window {
+      width: 460px;
+      max-width: 94%;
+      background: linear-gradient(180deg, #ffffff 0%, #eff4f1 100%);
+      border: 2px solid var(--ecb-navy);
+      border-radius: 10px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      animation: shockPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .ecb-modal-window.wide {
+      width: 680px;
+    }
+
+    .ecb-modal-header {
+      background: linear-gradient(180deg, #255096 0%, #143366 100%);
+      color: #ffffff;
+      padding: 11px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ecb-modal-title {
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .ecb-modal-close-x {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #ffffff;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .ecb-modal-close-x:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .ecb-modal-body {
+      padding: 18px 22px;
+      color: #263845;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .reg-form-group {
+      margin-bottom: 14px;
+    }
+
+    .reg-form-group label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 900;
+      color: var(--ecb-navy);
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      letter-spacing: 0.5px;
+    }
+
+    .reg-input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #9ab0a5;
+      border-radius: 6px;
+      font-family: var(--font-main);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ecb-navy);
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .reg-input:focus {
+      border-color: var(--ecb-cyan);
+      box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.18);
+    }
+
+    .reg-error-msg {
+      color: var(--alert-red);
+      font-size: 11.5px;
+      font-weight: 800;
+      margin-top: 4px;
+      min-height: 16px;
+    }
+
+    /* 10-Dot Scenario Loader Screen */
+    .loader-box {
+      background: rgba(255, 255, 255, 0.88);
+      border: 2px solid var(--ecb-navy);
+      border-radius: 12px;
+      padding: 28px 42px;
+      text-align: center;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    }
+
+    .loader-title {
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--ecb-navy);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin: 0 0 6px 0;
+    }
+
+    .loader-sub {
+      font-size: 12px;
+      font-weight: 700;
+      color: #4f6373;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 0 0 18px 0;
+    }
+
+    .loader-dots-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .loader-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      background: #c5d4cc;
+      border: 1px solid #8fa398;
+      transition: all 0.15s;
+    }
+
+    .loader-dot.lit {
+      background: var(--ecb-cyan);
+      border-color: var(--ecb-navy);
+      transform: scale(1.18);
+      box-shadow: 0 0 8px rgba(0, 136, 204, 0.6);
+    }
+
+    /* ==========================================================================
+       STEP 5.2 & 5.3: ANNUAL REVIEW, END-OF-GAME TROPHY & HALL OF FAME TABLES
+       ========================================================================== */
+    .review-star-banner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      background: radial-gradient(circle, #fff9db 0%, #f0f5f2 75%);
+      border: 1px solid #d5e0da;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+
+    .review-headline-big {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--ecb-navy);
+      margin: 6px 0 2px;
+      text-align: center;
+    }
+
+    .review-metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .review-stat-box {
+      background: #ffffff;
+      border: 1px solid #c5d4cc;
+      border-radius: 6px;
+      padding: 9px 12px;
+      text-align: center;
+    }
+
+    .review-stat-label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #526473;
+      letter-spacing: 0.5px;
+    }
+
+    .review-stat-val {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--ecb-navy);
+      margin-top: 2px;
+    }
+
+    /* Hall of Fame Table */
+    .hof-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    .hof-table th {
+      background: var(--ecb-navy);
+      color: #ffffff;
+      padding: 7px 8px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: left;
+    }
+
+    .hof-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #d8e3dd;
+      color: #243542;
+      font-weight: 700;
+    }
+
+    .hof-table tr:nth-child(even) {
+      background: #f4f8f6;
+    }
+
+    .hof-table tr.current-player-row {
+      background: #fff4c2;
+      font-weight: 900;
+    }
+
+    .modal-footer-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid #d5e0da;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       960x640 RESPONSIVE GAME STAGE
+       ========================================================================== -->
+  <div id="stage-wrapper">
+
+    <!-- ========================================================================
+         STEP 5.1A: WELCOME SCREEN OVERLAY (INITIAL VIEW)
+         ======================================================================== -->
+    <section id="welcome-overlay" class="full-stage-overlay" aria-label="Welcome Screen">
+      <!-- Top Utility Strip on Welcome Screen -->
+      <div style="width:100%; display:flex; justify-content:space-between; align-items:center; z-index:3;">
+        <span style="font-size:11px; font-weight:800; color:var(--ecb-navy); letter-spacing:0.6px;">
+          EUROPEAN CENTRAL BANK • EUROSYSTEM EDUCATIONAL SIMULATION
+        </span>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="adv-btn" id="btn-welcome-help">? How to Play</button>
+          <button type="button" class="adv-btn" id="btn-welcome-audio">🔊 Sound: ON</button>
+        </div>
+      </div>
+
+      <!-- Center Logo & Ribbon -->
+      <div class="welcome-hero-logo">
+        <div class="welcome-logo-main"><span class="euro-sym">€</span>CONOMIA</div>
+        <div class="welcome-logo-ribbon">The Monetary Policy Game</div>
+      </div>
+
+      <!-- Original Welcome Screen Illustration: 5 Advisors Around Council Table with Golden Trophy -->
+      <div class="welcome-art-container">
+        <svg viewBox="0 0 780 300" width="100%" height="100%">
+          <!-- Decorative Trend Lines Behind Advisors -->
+          <g fill="none" stroke-width="2.5" opacity="0.35">
+            <polyline points="10,230 130,180 250,200 390,120 530,145 660,75 770,50" stroke="#1e5aa8" />
+            <polyline points="10,255 140,220 270,225 410,165 550,150 680,115 770,95" stroke="#e09f00" />
+            <polyline points="10,270 150,250 280,210 420,220 560,180 690,155 770,135" stroke="#538135" />
+          </g>
+
+          <!-- 5 Advisors Standing Together Behind the Table -->
+          <!-- 1. Laptop Growth Analyst (Left) -->
+          <g transform="translate(175, 138)">
+            <path d="M-36,52 C-36,12 36,12 36,52 Z" fill="#2b4c7e" stroke="#14294a" stroke-width="1.5" />
+            <circle cx="0" cy="-10" r="22" fill="#f2cbb2" stroke="#c99b7e" stroke-width="1.2" />
+            <path d="M-22,-16 Q0,-36 22,-16 Z" fill="#593b22" />
+            <rect x="-15" y="-15" width="12" height="8" rx="1.5" fill="none" stroke="#143366" stroke-width="2" />
+            <rect x="3" y="-15" width="12" height="8" rx="1.5" fill="none" stroke="#143366" stroke-width="2" />
+            <line x1="-3" y1="-11" x2="3" y2="-11" stroke="#143366" stroke-width="2" />
+          </g>
+
+          <!-- 2. Inflation Juggler (Mid-Left) -->
+          <g transform="translate(285, 122)">
+            <circle cx="-26" cy="-32" r="6" fill="#e09f00" />
+            <circle cx="0" cy="-46" r="6" fill="#d92b2b" />
+            <circle cx="26" cy="-32" r="6" fill="#3ca638" />
+            <path d="M-36,55 C-36,12 36,12 36,55 Z" fill="#6b3fa0" stroke="#3c205e" stroke-width="1.5" />
+            <circle cx="0" cy="-10" r="22" fill="#f0c4a8" stroke="#c99b7e" stroke-width="1.2" />
+            <circle cx="-7" cy="-12" r="2.2" fill="#1d262d" />
+            <circle cx="7" cy="-12" r="2.2" fill="#1d262d" />
+            <path d="M-7,-1 Q0,5 7,-1" fill="none" stroke="#8a4b38" stroke-width="1.8" />
+          </g>
+
+          <!-- 3. Chief Stability Advisor (Center) -->
+          <g transform="translate(390, 112)">
+            <circle cx="0" cy="-12" r="26" fill="#8c4a27" />
+            <path d="M-40,58 C-40,12 40,12 40,58 Z" fill="#1c3f75" stroke="#0c2144" stroke-width="1.5" />
+            <polygon points="-10,16 0,36 10,16" fill="#f5b800" />
+            <circle cx="0" cy="-9" r="22" fill="#f5cdb4" stroke="#c99b7e" stroke-width="1.2" />
+            <circle cx="-7" cy="-12" r="2.5" fill="#143366" />
+            <circle cx="7" cy="-12" r="2.5" fill="#143366" />
+            <path d="M-7,1 Q0,6 7,1" fill="none" stroke="#9e4f3e" stroke-width="2" />
+          </g>
+
+          <!-- 4. Bow-Tie Monetarist (Mid-Right) -->
+          <g transform="translate(495, 122)">
+            <path d="M-36,55 C-36,12 36,12 36,55 Z" fill="#3b5e2b" stroke="#223818" stroke-width="1.5" />
+            <polygon points="-10,16 0,22 -10,28" fill="#d92b2b" />
+            <polygon points="10,16 0,22 10,28" fill="#d92b2b" />
+            <circle cx="0" cy="22" r="3" fill="#f5b800" />
+            <circle cx="0" cy="-10" r="22" fill="#f2c8ad" stroke="#c99b7e" stroke-width="1.2" />
+            <path d="M-11,-1 Q0,-6 11,-1" fill="none" stroke="#6e7880" stroke-width="3.2" stroke-linecap="round" />
+          </g>
+
+          <!-- 5. Cool Sunglasses Employment Advisor (Right) -->
+          <g transform="translate(605, 138)">
+            <path d="M-36,52 C-36,12 36,12 36,52 Z" fill="#3a4a58" stroke="#1f2933" stroke-width="1.5" />
+            <circle cx="0" cy="-10" r="22" fill="#ebbfa2" stroke="#c99b7e" stroke-width="1.2" />
+            <rect x="-16" y="-16" width="14" height="9" rx="2" fill="#111820" stroke="#ffffff" stroke-width="1" />
+            <rect x="2" y="-16" width="14" height="9" rx="2" fill="#111820" stroke="#ffffff" stroke-width="1" />
+          </g>
+
+          <!-- Conference Table & Golden Trophy Cup -->
+          <ellipse cx="390" cy="228" rx="330" ry="58" fill="#7c9488" />
+          <ellipse cx="390" cy="220" rx="325" ry="54" fill="#dce8e2" stroke="#ffffff" stroke-width="2.5" />
+          <g transform="translate(390, 198)">
+            <ellipse cx="0" cy="22" rx="24" ry="8" fill="#8c6200" />
+            <rect x="-12" y="12" width="24" height="10" rx="2" fill="#d99b00" />
+            <path d="M-22,-18 L22,-18 L15,12 L-15,12 Z" fill="#f5b800" stroke="#fff3b0" stroke-width="1.5" />
+            <path d="M-22,-12 C-34,-12 -32,6 -16,6" fill="none" stroke="#f5b800" stroke-width="3.5" />
+            <path d="M22,-12 C34,-12 32,6 16,6" fill="none" stroke="#f5b800" stroke-width="3.5" />
+            <polygon points="0,-10 2.5,-3 10,-3 4,1 6,8 0,4 -6,8 -4,1 -10,-3 -2.5,-3" fill="#ffffff" />
+          </g>
+        </svg>
+      </div>
+
+      <!-- Enter Button & Tagline -->
+      <div class="welcome-bottom-bar">
+        <p class="welcome-tagline">
+          Take the helm of the Governing Council for 8 years (32 quarters). Set the Key Interest Rate to keep inflation below, but close to, 2%!
+        </p>
+        <button type="button" class="btn-enter-game" id="btn-welcome-enter">ENTER</button>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         STEP 5.1B: PLAYER REGISTRATION MODAL (NAME & AGE)
+         ======================================================================== -->
+    <div id="registration-modal" class="stage-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="reg-modal-title">
+      <div class="ecb-modal-window">
+        <div class="ecb-modal-header">
+          <h3 class="ecb-modal-title" id="reg-modal-title">Governing Council Appointment</h3>
+          <button type="button" class="ecb-modal-close-x" id="btn-reg-close" title="Cancel">&times;</button>
+        </div>
+        <form id="registration-form" class="ecb-modal-body">
+          <p style="margin-top:0;">
+            Welcome to Frankfurt! Before taking your seat as President of the Governing Council, please enter your name and age for the official Hall of Fame register:
+          </p>
+          <div class="reg-form-group">
+            <label for="input-player-name">Your Name (min. 3 characters)</label>
+            <input type="text" id="input-player-name" class="reg-input" value="President" maxlength="22" placeholder="e.g. Christine" required />
+          </div>
+          <div class="reg-form-group">
+            <label for="input-player-age">Your Age</label>
+            <input type="number" id="input-player-age" class="reg-input" value="35" min="8" max="105" required />
+            <div class="reg-error-msg" id="reg-error-msg"></div>
+          </div>
+          <div class="modal-footer-actions">
+            <button type="submit" class="adv-btn primary" style="font-size:13px; padding:8px 18px;">OK, LET'S START</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ========================================================================
+         STEP 5.1C: 10-DOT SCENARIO LOADER OVERLAY
+         ======================================================================== -->
+    <section id="loader-overlay" class="full-stage-overlay hidden" aria-live="polite">
+      <div></div>
+      <div class="loader-box">
+        <h3 class="loader-title" id="loader-status-title">Calculating Start Scenario</h3>
+        <p class="loader-sub" id="loader-status-sub">Loading Game World &amp; Macroeconomic Series...</p>
+        <div class="loader-dots-row" id="loader-dots-row">
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+          <span class="loader-dot"></span>
+        </div>
+      </div>
+      <div></div>
+    </section>
+
+    <!-- ========================================================================
+         STEP 5.2A: ANNUAL STAR REVIEW MODAL (EVERY 4 QUARTERS)
+         ======================================================================== -->
+    <div id="annual-review-modal" class="stage-modal-backdrop hidden" role="dialog" aria-modal="true">
+      <div class="ecb-modal-window">
+        <div class="ecb-modal-header">
+          <h3 class="ecb-modal-title" id="annual-modal-header-title">Year 1 Evaluation (2011)</h3>
+        </div>
+        <div class="ecb-modal-body">
+          <div class="review-star-banner">
+            <div id="annual-modal-star-svg" style="width:68px; height:68px;"></div>
+            <h2 class="review-headline-big" id="annual-modal-headline">You've struck gold!</h2>
+            <div id="annual-modal-subtext" style="font-size:12px; font-weight:700; color:#425666;"></div>
+          </div>
+
+          <div class="review-metrics-grid">
+            <div class="review-stat-box">
+              <div class="review-stat-label">Inflation Average</div>
+              <div class="review-stat-val" id="annual-modal-avg">1.88%</div>
+            </div>
+            <div class="review-stat-box">
+              <div class="review-stat-label">Variation in Inflation</div>
+              <div class="review-stat-val" id="annual-modal-var">very low</div>
+            </div>
+          </div>
+
+          <p id="annual-modal-commentary" style="margin:0; font-size:12.5px; color:#2b3e4d;"></p>
+
+          <div class="modal-footer-actions">
+            <button type="button" class="adv-btn primary" id="btn-annual-continue" style="font-size:13px; padding:8px 20px;">CONTINUE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================
+         STEP 5.2B: END-OF-GAME 8-YEAR TROPHY CEREMONY MODAL (QUARTER 32)
+         ======================================================================== -->
+    <div id="endgame-modal" class="stage-modal-backdrop hidden" role="dialog" aria-modal="true">
+      <div class="ecb-modal-window wide">
+        <div class="ecb-modal-header">
+          <h3 class="ecb-modal-title">8-Year Mandate Complete — Final Governing Council Assessment</h3>
+        </div>
+        <div class="ecb-modal-body">
+          <div style="display:grid; grid-template-columns: 200px 1fr; gap:18px; align-items:center;">
+            <!-- Left: Golden Trophy & Star Count -->
+            <div class="review-star-banner" style="margin:0; height:100%;">
+              <svg viewBox="0 0 120 120" width="95" height="95">
+                <ellipse cx="60" cy="104" rx="34" ry="10" fill="#8c6200" />
+                <rect x="42" y="88" width="36" height="16" rx="3" fill="#d99b00" />
+                <path d="M28,24 L92,24 L80,88 L40,88 Z" fill="#f5b800" stroke="#fff3b0" stroke-width="2" />
+                <path d="M28,34 C10,34 12,68 36,68" fill="none" stroke="#f5b800" stroke-width="5" />
+                <path d="M92,34 C110,34 108,68 84,68" fill="none" stroke="#f5b800" stroke-width="5" />
+                <polygon points="60,36 64,48 77,48 67,55 71,67 60,60 49,67 53,55 43,48 56,48" fill="#ffffff" />
+              </svg>
+              <div style="font-size:18px; font-weight:900; color:var(--ecb-navy); margin-top:4px;" id="endgame-stars-readout">
+                8 / 8 Gold Stars
+              </div>
+              <div style="font-size:12px; font-weight:800; color:#b57c00;" id="endgame-score-readout">
+                Score: 9,450 pts
+              </div>
+            </div>
+
+            <!-- Right: Rank Title, Summary & 8-Year Metrics -->
+            <div>
+              <span class="advisor-role-tag" id="endgame-rank-badge">Grand Master of Price Stability</span>
+              <h2 style="margin:4px 0 8px; font-size:21px; color:var(--ecb-navy);" id="endgame-headline">
+                Congratulations, President!
+              </h2>
+              <p id="endgame-summary-text" style="margin:0 0 12px; font-size:12.5px; color:#2b3e4d;"></p>
+
+              <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
+                <div class="review-stat-box">
+                  <div class="review-stat-label">8-Yr Avg Inflation</div>
+                  <div class="review-stat-val" style="font-size:16px;" id="endgame-avg-infl">1.89%</div>
+                </div>
+                <div class="review-stat-box">
+                  <div class="review-stat-label">Inflation Variation</div>
+                  <div class="review-stat-val" style="font-size:16px;" id="endgame-var-infl">very low</div>
+                </div>
+                <div class="review-stat-box">
+                  <div class="review-stat-label">Avg Production</div>
+                  <div class="review-stat-val" style="font-size:16px;" id="endgame-avg-prod">2.31%</div>
+                </div>
+                <div class="review-stat-box">
+                  <div class="review-stat-label">Final Unemp.</div>
+                  <div class="review-stat-val" style="font-size:16px;" id="endgame-end-unemp">7.20%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer-actions">
+            <button type="button" class="adv-btn" id="btn-endgame-share">Share Scorecard</button>
+            <button type="button" class="adv-btn gold" id="btn-endgame-hof">🏆 View Hall of Fame</button>
+            <button type="button" class="adv-btn primary" id="btn-endgame-replay">🔄 Play Again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================
+         STEP 5.3: UNIVERSAL SYSTEM MODAL (HALL OF FAME, HELP, SHARE, CREDITS, ETC.)
+         ======================================================================== -->
+    <div id="system-modal-overlay" class="stage-modal-backdrop hidden" role="dialog" aria-modal="true">
+      <div class="ecb-modal-window wide">
+        <div class="ecb-modal-header">
+          <h3 class="ecb-modal-title" id="sys-modal-title">Hall of Fame</h3>
+          <button type="button" class="ecb-modal-close-x" id="btn-sys-modal-close">&times;</button>
+        </div>
+        <div class="ecb-modal-body" id="sys-modal-body">
+          <!-- Populated dynamically based on footer link or '?' Help button -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================
+         STEP 1.2: TOP HEADER BAR
+         ======================================================================== -->
+    <header id="top-header">
+      <div class="brand-cluster">
+        <div class="logo-badge" id="logo-home-btn" title="€conomia – Click for How to Play">
+          <div class="logo-title"><span class="euro-sym">€</span>CONOMIA</div>
+          <div class="logo-subtitle">The Monetary Policy Game</div>
+        </div>
+        <div class="utility-buttons">
+          <button id="btn-help" class="util-btn" title="How to Play &amp; Help">?</button>
+          <button id="btn-audio" class="util-btn" title="Toggle Sound">🔊</button>
+          <span class="president-tag" id="header-player-tag" title="Current Governing Council President">Pres. Christine</span>
+        </div>
+      </div>
+
+      <!-- Top-Center 8-Year / 32-Quarter Timeline -->
+      <div id="timeline-bar" class="timeline-container" aria-label="8-Year Game Timeline"></div>
+
+      <!-- Top-Right Stability Speedometer Gauge -->
+      <div class="gauge-cluster" title="Price Stability Meter">
+        <svg class="gauge-svg" viewBox="0 0 120 60">
+          <defs>
+            <linearGradient id="gaugeHubGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#3a4b5c" />
+              <stop offset="100%" stop-color="#14202b" />
+            </linearGradient>
+          </defs>
+          <path d="M 10 52 A 50 50 0 0 1 110 52" fill="none" stroke="#d0dad4" stroke-width="15" />
+          <path d="M 12 52 A 48 48 0 0 1 24 20" fill="none" stroke="#d93226" stroke-width="11" />
+          <path d="M 24 20 A 48 48 0 0 1 46 6" fill="none" stroke="#f2a516" stroke-width="11" />
+          <path d="M 46 6 A 48 48 0 0 1 76 7" fill="none" stroke="#3ca638" stroke-width="11" />
+          <path d="M 76 7 A 48 48 0 0 1 97 22" fill="none" stroke="#f2a516" stroke-width="11" />
+          <path d="M 97 22 A 48 48 0 0 1 108 52" fill="none" stroke="#d93226" stroke-width="11" />
+          <line x1="63" y1="1" x2="63" y2="12" stroke="#143366" stroke-width="2" />
+          <g id="gauge-needle" style="transform: rotate(3deg);">
+            <polygon points="57,52 60,10 63,52" fill="#14202b" />
+            <circle cx="60" cy="52" r="7" fill="url(#gaugeHubGrad)" stroke="#ffffff" stroke-width="1.5" />
+          </g>
+        </svg>
+        <div id="gauge-status-text" class="gauge-caption">STABLE (1.96%)</div>
+      </div>
+    </header>
+
+    <!-- MAIN VIEWPORT (5 SWITCHABLE HOTBAR PAGES) -->
+    <main id="viewport">
+
+      <!-- ======================================================================
+           STEP 3.3: TAB 1 — INDICATORS (THREE-CHART FORECAST DASHBOARD)
+           ====================================================================== -->
+      <section id="view-indicators" class="game-view" data-view="indicators">
+        <div class="indicators-three-grid">
+
+          <!-- Panel 1: MONEY GROWTH (4-Quarter Historical Line Chart) -->
+          <div class="ind-chart-card">
+            <div class="ind-card-header money-hdr">
+              <h3 class="ind-card-title">Money Growth</h3>
+              <span class="ind-card-current" id="ind-hdr-money">3.35%</span>
+            </div>
+            <div class="ind-svg-container">
+              <svg id="svg-ind-money" class="ind-panel-svg" viewBox="0 0 280 280"></svg>
+            </div>
+            <div class="ind-card-footer">
+              <span>Past 4 Quarters (M3)</span>
+              <span style="color:var(--money-green);">Ref. Value: 4.50%</span>
+            </div>
+          </div>
+
+          <!-- Panel 2: INFLATION RATE (3-Quarter Future Uncertainty Range Capsules) -->
+          <div class="ind-chart-card">
+            <div class="ind-card-header infl-hdr">
+              <h3 class="ind-card-title">Inflation Rate</h3>
+              <span class="ind-card-current" id="ind-hdr-infl">1.96%</span>
+            </div>
+            <div class="ind-svg-container">
+              <svg id="svg-ind-infl" class="ind-panel-svg" viewBox="0 0 280 280"></svg>
+            </div>
+            <div class="ind-card-footer">
+              <span>3-Quarter Forecast Range</span>
+              <span style="color:#b87f00;">Target: below 2.00%</span>
+            </div>
+          </div>
+
+          <!-- Panel 3: PRODUCTION GROWTH (3-Quarter Future Uncertainty Range Capsules) -->
+          <div class="ind-chart-card">
+            <div class="ind-card-header prod-hdr">
+              <h3 class="ind-card-title">Production Growth</h3>
+              <span class="ind-card-current" id="ind-hdr-prod">2.75%</span>
+            </div>
+            <div class="ind-svg-container">
+              <svg id="svg-ind-prod" class="ind-panel-svg" viewBox="0 0 280 280"></svg>
+            </div>
+            <div class="ind-card-footer">
+              <span>3-Quarter Forecast Range</span>
+              <span style="color:var(--prod-brown);">Potential: 2.25%</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ======================================================================
+           STEP 4.1: TAB 2 — YOUR TEAM (COUNCIL TABLE & 5 ADVISOR PERSONA CARDS)
+           ====================================================================== -->
+      <section id="view-team" class="game-view" data-view="team">
+        <div class="team-stage-wrap">
+          <div class="team-top-banner">
+            <h2 class="team-top-title">Governing Council Advisory Team</h2>
+            <span class="team-top-hint">Click any advisor around the council table (or below) to hear their assessment</span>
+          </div>
+
+          <div class="council-room-canvas">
+            <svg id="council-room-svg" viewBox="0 0 920 330">
+              <defs>
+                <linearGradient id="tableWood" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#e3ede8" />
+                  <stop offset="100%" stop-color="#9cb3a8" />
+                </linearGradient>
+                <linearGradient id="windowSky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#b5d3e8" />
+                  <stop offset="100%" stop-color="#e2eff7" />
+                </linearGradient>
+              </defs>
+
+              <rect x="40" y="12" width="840" height="145" rx="8" fill="url(#windowSky)" stroke="#95abbd" stroke-width="2" />
+              <g fill="#8ba7bd" opacity="0.45">
+                <rect x="110" y="65" width="38" height="92" />
+                <rect x="155" y="45" width="46" height="112" />
+                <polygon points="155,45 178,22 201,45" />
+                <rect x="220" y="80" width="32" height="77" />
+                <rect x="640" y="52" width="44" height="105" />
+                <rect x="695" y="72" width="36" height="85" />
+                <rect x="745" y="60" width="48" height="97" />
+              </g>
+              <line x1="250" y1="12" x2="250" y2="157" stroke="#95abbd" stroke-width="2" />
+              <line x1="460" y1="12" x2="460" y2="157" stroke="#95abbd" stroke-width="2" />
+              <line x1="670" y1="12" x2="670" y2="157" stroke="#95abbd" stroke-width="2" />
+
+              <circle cx="460" cy="52" r="24" fill="#143366" stroke="#ffffff" stroke-width="2" />
+              <text x="460" y="61" text-anchor="middle" fill="#f5b800" font-size="26" font-weight="900">€</text>
+
+              <!-- ADVISOR 0: ECONOMIC GROWTH (Far Left - Laptop Analyst) -->
+              <g class="advisor-seat-group" data-advisor="0" transform="translate(155, 165)">
+                <rect x="-42" y="-38" width="84" height="75" rx="10" fill="#2c3e50" />
+                <path d="M-38,42 C-38,8 38,8 38,42 Z" fill="#2b4c7e" stroke="#14294a" stroke-width="1.5" />
+                <polygon points="-8,14 0,34 8,14" fill="#ffffff" />
+                <polygon points="-3,18 0,34 3,18" fill="#7a4b2a" />
+                <circle cx="0" cy="-12" r="22" fill="#f2cbb2" stroke="#c99b7e" stroke-width="1.2" />
+                <path d="M-22,-18 Q0,-38 22,-18 Q18,-28 0,-28 Q-18,-28 -22,-18 Z" fill="#593b22" />
+                <rect x="-15" y="-17" width="12" height="8" rx="1.5" fill="none" stroke="#143366" stroke-width="2" />
+                <rect x="3" y="-17" width="12" height="8" rx="1.5" fill="none" stroke="#143366" stroke-width="2" />
+                <line x1="-3" y1="-13" x2="3" y2="-13" stroke="#143366" stroke-width="2" />
+                <path d="M-7,-1 Q0,4 7,-1" fill="none" stroke="#7a4b2a" stroke-width="1.8" />
+                <g class="advisor-pin" id="pin-adv-0" transform="translate(0, -56)">
+                  <circle cx="0" cy="0" r="13" fill="#1e5aa8" stroke="#ffffff" stroke-width="2" />
+                  <text x="0" y="5" text-anchor="middle" fill="#ffffff" font-family="Georgia,serif" font-style="italic" font-size="15" font-weight="900">i</text>
+                </g>
+              </g>
+
+              <!-- ADVISOR 1: INFLATION RISK (Mid Left - The Juggler) -->
+              <g class="advisor-seat-group" data-advisor="1" transform="translate(305, 145)">
+                <rect x="-40" y="-36" width="80" height="72" rx="10" fill="#2c3e50" />
+                <path d="M-36,42 C-36,8 36,8 36,42 Z" fill="#6b3fa0" stroke="#3c205e" stroke-width="1.5" />
+                <polygon points="-8,14 0,34 8,14" fill="#ffe066" />
+                <circle cx="-32" cy="-26" r="6" fill="#e09f00" stroke="#ffffff" stroke-width="1" />
+                <circle cx="0" cy="-42" r="6" fill="#d92b2b" stroke="#ffffff" stroke-width="1" />
+                <circle cx="32" cy="-26" r="6" fill="#3ca638" stroke="#ffffff" stroke-width="1" />
+                <circle cx="0" cy="-12" r="21" fill="#f0c4a8" stroke="#c99b7e" stroke-width="1.2" />
+                <path d="M-21,-16 Q0,-36 21,-16" fill="#2b2118" />
+                <circle cx="-7" cy="-14" r="2.2" fill="#1d262d" />
+                <circle cx="7" cy="-14" r="2.2" fill="#1d262d" />
+                <path d="M-7,-2 Q0,4 7,-2" fill="none" stroke="#8a4b38" stroke-width="1.8" />
+                <g class="advisor-pin" id="pin-adv-1" transform="translate(0, -62)">
+                  <circle cx="0" cy="0" r="13" fill="#1e5aa8" stroke="#ffffff" stroke-width="2" />
+                  <text x="0" y="5" text-anchor="middle" fill="#ffffff" font-family="Georgia,serif" font-style="italic" font-size="15" font-weight="900">i</text>
+                </g>
+              </g>
+
+              <!-- ADVISOR 4: CHIEF STABILITY ADVISOR (Center - Sleeping Mask When Stable) -->
+              <g class="advisor-seat-group" data-advisor="4" transform="translate(460, 138)">
+                <rect x="-44" y="-38" width="88" height="75" rx="12" fill="#143366" />
+                <path d="M-38,44 C-38,10 38,10 38,44 Z" fill="#1c3f75" stroke="#0c2144" stroke-width="1.5" />
+                <polygon points="-10,14 0,30 10,14" fill="#f5b800" />
+                <circle cx="0" cy="-14" r="24" fill="#8c4a27" />
+                <circle cx="0" cy="-11" r="21" fill="#f5cdb4" stroke="#c99b7e" stroke-width="1.2" />
+                <g id="chief-sleep-mask">
+                  <rect x="-17" y="-19" width="34" height="11" rx="5" fill="#1e5aa8" stroke="#ffffff" stroke-width="1.3" />
+                  <path d="M-11,-13 Q-8,-10 -5,-13" fill="none" stroke="#dce8f5" stroke-width="1.4" />
+                  <path d="M5,-13 Q8,-10 11,-13" fill="none" stroke="#dce8f5" stroke-width="1.4" />
+                  <text x="26" y="-26" fill="#143366" font-size="12" font-weight="900">Zzz</text>
+                </g>
+                <g id="chief-awake-eyes" style="display:none;">
+                  <circle cx="-7" cy="-14" r="2.6" fill="#143366" />
+                  <circle cx="7" cy="-14" r="2.6" fill="#143366" />
+                </g>
+                <path d="M-6,-1 Q0,3 6,-1" fill="none" stroke="#9e4f3e" stroke-width="1.8" />
+                <g class="advisor-pin" id="pin-adv-4" transform="translate(0, -56)">
+                  <circle cx="0" cy="0" r="13" fill="#1e5aa8" stroke="#ffffff" stroke-width="2" />
+                  <text x="0" y="5" text-anchor="middle" fill="#ffffff" font-family="Georgia,serif" font-style="italic" font-size="15" font-weight="900">i</text>
+                </g>
+              </g>
+
+              <!-- ADVISOR 2: MONETARY PILLAR (Mid Right - Bow-Tie Scholar) -->
+              <g class="advisor-seat-group" data-advisor="2" transform="translate(615, 145)">
+                <rect x="-40" y="-36" width="80" height="72" rx="10" fill="#2c3e50" />
+                <path d="M-36,42 C-36,8 36,8 36,42 Z" fill="#3b5e2b" stroke="#223818" stroke-width="1.5" />
+                <polygon points="-8,14 0,32 8,14" fill="#ffffff" />
+                <polygon points="-10,14 0,20 -10,26" fill="#d92b2b" />
+                <polygon points="10,14 0,20 10,26" fill="#d92b2b" />
+                <circle cx="0" cy="20" r="3" fill="#f5b800" />
+                <circle cx="0" cy="-12" r="21" fill="#f2c8ad" stroke="#c99b7e" stroke-width="1.2" />
+                <circle cx="-7" cy="-14" r="2.2" fill="#1d262d" />
+                <circle cx="7" cy="-14" r="2.2" fill="#1d262d" />
+                <path d="M-11,-3 Q0,-8 11,-3" fill="none" stroke="#6e7880" stroke-width="3.2" stroke-linecap="round" />
+                <g class="advisor-pin" id="pin-adv-2" transform="translate(0, -56)">
+                  <circle cx="0" cy="0" r="13" fill="#1e5aa8" stroke="#ffffff" stroke-width="2" />
+                  <text x="0" y="5" text-anchor="middle" fill="#ffffff" font-family="Georgia,serif" font-style="italic" font-size="15" font-weight="900">i</text>
+                </g>
+              </g>
+
+              <!-- ADVISOR 3: EMPLOYMENT & CONSUMER (Far Right - Cool Sunglasses Guy) -->
+              <g class="advisor-seat-group" data-advisor="3" transform="translate(765, 165)">
+                <rect x="-42" y="-38" width="84" height="75" rx="10" fill="#2c3e50" />
+                <path d="M-38,42 C-38,8 38,8 38,42 Z" fill="#3a4a58" stroke="#1f2933" stroke-width="1.5" />
+                <path d="M-12,12 L0,36 L12,12" fill="#5ec4e8" />
+                <circle cx="0" cy="-12" r="22" fill="#ebbfa2" stroke="#c99b7e" stroke-width="1.2" />
+                <path d="M-22,-16 L-14,-34 L-4,-26 L6,-36 L16,-25 L22,-16 Z" fill="#382616" />
+                <rect x="-17" y="-18" width="15" height="9" rx="2" fill="#111820" stroke="#ffffff" stroke-width="1" />
+                <rect x="2" y="-18" width="15" height="9" rx="2" fill="#111820" stroke="#ffffff" stroke-width="1" />
+                <line x1="-2" y1="-14" x2="2" y2="-14" stroke="#111820" stroke-width="2" />
+                <path d="M-6,-1 Q2,4 9,-2" fill="none" stroke="#6e412c" stroke-width="1.8" />
+                <g class="advisor-pin" id="pin-adv-3" transform="translate(0, -56)">
+                  <circle cx="0" cy="0" r="13" fill="#1e5aa8" stroke="#ffffff" stroke-width="2" />
+                  <text x="0" y="5" text-anchor="middle" fill="#ffffff" font-family="Georgia,serif" font-style="italic" font-size="15" font-weight="900">i</text>
+                </g>
+              </g>
+
+              <!-- Conference Table & Props -->
+              <ellipse cx="460" cy="258" rx="415" ry="74" fill="#6e857a" />
+              <ellipse cx="460" cy="250" rx="410" ry="70" fill="url(#tableWood)" stroke="#ffffff" stroke-width="2.5" />
+              <ellipse cx="460" cy="248" rx="275" ry="42" fill="none" stroke="rgba(20,51,102,0.16)" stroke-width="1.5" />
+
+              <g transform="translate(165, 212)">
+                <polygon points="-22,8 22,8 16,-14 -16,-14" fill="#253545" stroke="#ffffff" stroke-width="1" />
+                <polygon points="-26,8 26,8 32,14 -32,14" fill="#7c8d9c" />
+              </g>
+              <g transform="translate(605, 206)">
+                <rect x="-20" y="-6" width="40" height="24" rx="2" fill="#ffffff" stroke="#538135" stroke-width="1.5" transform="rotate(-8)" />
+                <polyline points="-14,8 -4,2 6,5 14,-3" fill="none" stroke="#538135" stroke-width="2" />
+              </g>
+              <g transform="translate(460, 232)">
+                <ellipse cx="0" cy="18" rx="18" ry="6" fill="#8c6200" />
+                <rect x="-10" y="10" width="20" height="8" rx="2" fill="#d99b00" />
+                <path d="M-16,-14 L16,-14 L11,8 L-11,8 Z" fill="#f5b800" stroke="#fff3b0" stroke-width="1.2" />
+                <path d="M-16,-10 C-25,-10 -24,4 -12,4" fill="none" stroke="#f5b800" stroke-width="3" />
+                <path d="M16,-10 C25,-10 24,4 12,4" fill="none" stroke="#f5b800" stroke-width="3" />
+              </g>
+            </svg>
+          </div>
+
+          <div class="advisor-quick-strip" id="advisor-quick-strip"></div>
+
+          <div id="advisor-detail-modal" class="hidden" role="dialog" aria-modal="true">
+            <div class="advisor-portrait-stage">
+              <div class="advisor-portrait-svg-wrap" id="advisor-modal-art"></div>
+              <div class="advisor-metric-pill-box">
+                <span id="advisor-modal-metric-name">INFLATION RATE</span>
+                <span id="advisor-modal-metric-val">1.96%</span>
+              </div>
+            </div>
+
+            <div class="advisor-speech-stage">
+              <div>
+                <span class="advisor-role-tag" id="advisor-modal-role">Chief Stability Advisor</span>
+                <h3 class="advisor-name-heading" id="advisor-modal-name">Elena Vance</h3>
+
+                <div class="advisor-quote-bubble">
+                  <h4 class="advisor-quote-headline" id="advisor-modal-headline">"Things are looking good!"</h4>
+                  <p class="advisor-quote-body" id="advisor-modal-body"></p>
+                </div>
+
+                <div class="advisor-Tactical-box" id="advisor-modal-tactical"></div>
+              </div>
+
+              <div class="advisor-modal-footer">
+                <div class="advisor-nav-btns">
+                  <button type="button" class="adv-btn" id="btn-adv-prev">&larr; Previous Advisor</button>
+                  <button type="button" class="adv-btn" id="btn-adv-next">Next Advisor &rarr;</button>
+                </div>
+                <button type="button" class="adv-btn primary" id="btn-adv-close">Back to Council Table</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ======================================================================
+           STEP 3.1 & 3.2: TAB 3 — MAP (EURO AREA CHART + 5 PILLS + 3D MAP)
+           ====================================================================== -->
+      <section id="view-map" class="game-view active" data-view="map">
+        <div class="map-view-layout">
+
+          <!-- STEP 3.1: LEFT PANEL (DATA FOR THE EURO AREA CHART + 5 READOUT PILLS) -->
+          <div class="map-left-column">
+            <div class="euro-data-card">
+              <div class="euro-data-header">
+                <h2 class="euro-data-title">Data for the Euro Area</h2>
+                <div class="chart-legend-inline">
+                  <span class="legend-item"><i class="legend-swatch" style="background:var(--rate-blue);"></i>Key Rate</span>
+                  <span class="legend-item"><i class="legend-swatch" style="background:var(--inflation-gold);"></i>Inflation</span>
+                  <span class="legend-item"><i class="legend-swatch" style="background:var(--prod-brown);"></i>Production</span>
+                </div>
+              </div>
+
+              <div class="euro-chart-wrap">
+                <svg id="map-main-chart" viewBox="0 0 405 205"></svg>
+              </div>
+            </div>
+
+            <!-- 5 Iconic Color-Coded Readout Pills -->
+            <div>
+              <div class="map-pills-grid">
+                <div class="metric-pill rate-pill">
+                  <span class="metric-pill-title">Key Interest Rate</span>
+                  <div class="metric-pill-bottom">
+                    <span class="metric-pill-value" id="pill-rate">2.00%</span>
+                    <span class="metric-pill-delta" id="delta-rate">• 0.00%</span>
+                  </div>
+                </div>
+
+                <div class="metric-pill infl-pill">
+                  <span class="metric-pill-title">Inflation Rate</span>
+                  <div class="metric-pill-bottom">
+                    <span class="metric-pill-value" id="pill-infl">1.96%</span>
+                    <span class="metric-pill-delta" id="delta-infl">+0.03%</span>
+                  </div>
+                </div>
+
+                <div class="metric-pill prod-pill">
+                  <span class="metric-pill-title">Production Growth</span>
+                  <div class="metric-pill-bottom">
+                    <span class="metric-pill-value" id="pill-prod">2.75%</span>
+                    <span class="metric-pill-delta" id="delta-prod">+0.07%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="map-pills-row2">
+                <div class="metric-pill money-pill">
+                  <span class="metric-pill-title">Money Growth</span>
+                  <div class="metric-pill-bottom">
+                    <span class="metric-pill-value" id="pill-money">3.35%</span>
+                    <span class="metric-pill-delta" id="delta-money">+0.05%</span>
+                  </div>
+                </div>
+
+                <div class="metric-pill unemp-pill">
+                  <span class="metric-pill-title">Unemployment</span>
+                  <div class="metric-pill-bottom">
+                    <span class="metric-pill-value" id="pill-unemp">7.15%</span>
+                    <span class="metric-pill-delta" id="delta-unemp">-0.04%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3.2: RIGHT PANEL (3D ISOMETRIC EURO AREA MAP & SHOCK POPUP) -->
+          <div class="map-right-stage" id="map-stage-container">
+
+            <div class="map-overlay-top">
+              <div class="map-status-chip" id="readout-period">Year 1 (2011) – Q1 [1/32]</div>
+              <div class="map-debug-bar" title="Trigger an immediate shock on the next quarter">
+                <button class="mini-shock-btn" data-shock="stock_crash">📉 Crash</button>
+                <button class="mini-shock-btn" data-shock="stock_rally">📈 Rally</button>
+                <button class="mini-shock-btn" data-shock="floods">🌊 Flood</button>
+                <button class="mini-shock-btn" data-shock="winter_weather">❄️ Freeze</button>
+                <button class="mini-shock-btn" data-shock="oil_surge">🛢️ Oil</button>
+              </div>
+            </div>
+
+            <!-- Layered 3D Isometric Euro Area SVG Map -->
+            <svg id="euro-isometric-svg" viewBox="0 0 500 410">
+              <defs>
+                <linearGradient id="landNormal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#8ec657" />
+                  <stop offset="100%" stop-color="#5d9932" />
+                </linearGradient>
+                <linearGradient id="landBear" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#c99e52" />
+                  <stop offset="100%" stop-color="#8f6829" />
+                </linearGradient>
+                <linearGradient id="landFlood" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#6ca388" />
+                  <stop offset="100%" stop-color="#447862" />
+                </linearGradient>
+                <linearGradient id="landWinter" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop offset="100%" stop-color="#d5e6f2" />
+                </linearGradient>
+                <filter id="mapDropShadow" x="-10%" y="-10%" width="125%" height="125%">
+                  <feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="#1b363b" flood-opacity="0.38" />
+                </filter>
+              </defs>
+
+              <g stroke="rgba(255,255,255,0.22)" stroke-width="1" fill="none">
+                <path d="M 0 90 Q 250 60 500 95" />
+                <path d="M 0 185 Q 250 155 500 190" />
+                <path d="M 0 280 Q 250 250 500 285" />
+                <path d="M 0 365 Q 250 340 500 370" />
+                <path d="M 110 0 Q 90 200 75 410" />
+                <path d="M 245 0 Q 240 200 235 410" />
+                <path d="M 380 0 Q 390 200 405 410" />
+              </g>
+
+              <g filter="url(#mapDropShadow)">
+                <path d="M 108 152 L 135 130 L 154 158 L 146 184 L 112 182 Z" fill="#828f89" transform="translate(0, 7)" />
+                <path d="M 108 152 L 135 130 L 154 158 L 146 184 L 112 182 Z" fill="#b7c4be" stroke="#ffffff" stroke-width="1" />
+                <path d="M 315 125 L 445 110 L 465 275 L 350 295 L 308 220 Z" fill="#7c8a84" transform="translate(0, 9)" />
+                <path d="M 315 125 L 445 110 L 465 275 L 350 295 L 308 220 Z" fill="#aebcb5" stroke="#e4ece8" stroke-width="1" />
+                <path d="M 222 238 L 252 234 L 258 250 L 228 254 Z" fill="#9ba8a2" />
+              </g>
+
+              <g filter="url(#mapDropShadow)">
+                <g id="euro-3d-wall" fill="#3b6321" transform="translate(0, 10)">
+                  <path d="M 48 292 L 106 278 L 122 296 L 145 232 L 132 206 L 175 190 L 208 164 L 258 156 L 296 172 L 320 205 L 315 245 L 292 268 L 328 315 L 305 345 L 282 315 L 252 272 L 268 312 L 292 355 L 268 374 L 245 345 L 222 292 L 185 282 L 142 325 L 122 362 L 62 356 Z" />
+                  <path d="M 76 154 L 98 145 L 104 170 L 82 176 Z" />
+                  <path d="M 285 48 L 336 42 L 352 108 L 318 128 L 288 102 Z" />
+                </g>
+
+                <g id="euro-3d-top" fill="url(#landNormal)" stroke="#f2f9ec" stroke-width="1.8" stroke-linejoin="round">
+                  <path d="M 48 292 L 106 278 L 122 296 L 145 232 L 132 206 L 175 190 L 208 164 L 258 156 L 296 172 L 320 205 L 315 245 L 292 268 L 328 315 L 305 345 L 282 315 L 252 272 L 268 312 L 292 355 L 268 374 L 245 345 L 222 292 L 185 282 L 142 325 L 122 362 L 62 356 Z" />
+                  <path d="M 76 154 L 98 145 L 104 170 L 82 176 Z" />
+                  <path d="M 285 48 L 336 42 L 352 108 L 318 128 L 288 102 Z" />
+                </g>
+
+                <g stroke="rgba(255,255,255,0.45)" stroke-width="1.2" stroke-dasharray="3 2" fill="none">
+                  <path d="M 122 296 L 142 325" />
+                  <path d="M 195 182 L 215 245 L 185 282" />
+                  <path d="M 215 245 L 278 242" />
+                  <path d="M 222 292 L 252 272" />
+                </g>
+              </g>
+
+              <g id="map-rivers" stroke="#4da6cc" stroke-width="2.2" fill="none" stroke-linecap="round">
+                <path d="M 225 185 Q 232 215 248 235" />
+                <path d="M 168 228 Q 188 245 178 272" />
+                <path d="M 262 238 Q 295 248 315 242" />
+              </g>
+
+              <g transform="translate(226, 188)">
+                <rect x="-12" y="-18" width="9" height="22" fill="#2c538a" stroke="#ffffff" stroke-width="0.8" />
+                <polygon points="-12,-18 -7.5,-23 -3,-18" fill="#5082c4" />
+                <rect x="-1" y="-26" width="11" height="30" fill="#183a6e" stroke="#ffffff" stroke-width="0.8" />
+                <rect x="12" y="-14" width="8" height="18" fill="#3b6aa6" stroke="#ffffff" stroke-width="0.8" />
+                <circle cx="5" cy="7" r="8.5" fill="#143366" stroke="#ffffff" stroke-width="1.2" />
+                <text x="5" y="11" text-anchor="middle" fill="#ffcc00" font-size="12" font-weight="900">€</text>
+              </g>
+
+              <g transform="translate(198, 158)">
+                <line x1="0" y1="0" x2="0" y2="18" stroke="#ffffff" stroke-width="2" />
+                <g class="turbine-blades">
+                  <line x1="0" y1="0" x2="0" y2="-10" stroke="#ffffff" stroke-width="1.8" />
+                  <line x1="0" y1="0" x2="8.6" y2="5" stroke="#ffffff" stroke-width="1.8" />
+                  <line x1="0" y1="0" x2="-8.6" y2="5" stroke="#ffffff" stroke-width="1.8" />
+                </g>
+              </g>
+              <g transform="translate(88, 308)">
+                <line x1="0" y1="0" x2="0" y2="16" stroke="#ffffff" stroke-width="2" />
+                <g class="turbine-blades">
+                  <line x1="0" y1="0" x2="0" y2="-9" stroke="#ffffff" stroke-width="1.8" />
+                  <line x1="0" y1="0" x2="7.8" y2="4.5" stroke="#ffffff" stroke-width="1.8" />
+                  <line x1="0" y1="0" x2="-7.8" y2="4.5" stroke="#ffffff" stroke-width="1.8" />
+                </g>
+              </g>
+
+              <g id="map-trees">
+                <g transform="translate(162, 248)">
+                  <polygon points="0,-14 -7,0 7,0" fill="#2e6918" />
+                  <polygon points="0,-9 -6,4 6,4" fill="#3a8020" />
+                </g>
+                <g transform="translate(278, 212)">
+                  <polygon points="0,-15 -7,0 7,0" fill="#2e6918" />
+                  <polygon points="0,-10 -6,4 6,4" fill="#3a8020" />
+                </g>
+                <g transform="translate(312, 86)">
+                  <polygon points="0,-15 -7,0 7,0" fill="#2e6918" />
+                  <polygon points="0,-10 -6,4 6,4" fill="#3a8020" />
+                </g>
+                <g transform="translate(115, 326)">
+                  <circle cx="0" cy="-6" r="6.5" fill="#468f27" />
+                  <rect x="-1.5" y="0" width="3" height="5" fill="#694322" />
+                </g>
+              </g>
+
+              <g id="props-normal">
+                <circle cx="435" cy="58" r="22" fill="#ffcf24" opacity="0.9" />
+                <circle cx="435" cy="58" r="28" fill="#ffcf24" opacity="0.25" />
+                <g transform="translate(38, 228)">
+                  <polygon points="0,0 26,0 21,7 5,7" fill="#1e4585" />
+                  <rect x="7" y="-5" width="6" height="5" fill="#e09f00" />
+                  <rect x="14" y="-5" width="5" height="5" fill="#d93226" />
+                </g>
+              </g>
+
+              <g id="props-bear" style="display:none;">
+                <g transform="translate(178, 224)">
+                  <ellipse cx="0" cy="12" rx="16" ry="13" fill="#5e3a1e" stroke="#3b220f" stroke-width="1.5" />
+                  <circle cx="-9" cy="-6" r="4.5" fill="#5e3a1e" />
+                  <circle cx="9" cy="-6" r="4.5" fill="#5e3a1e" />
+                  <circle cx="0" cy="0" r="11" fill="#734827" stroke="#3b220f" stroke-width="1.5" />
+                  <ellipse cx="0" cy="3" rx="5" ry="3.8" fill="#c49a76" />
+                  <circle cx="0" cy="1.5" r="2" fill="#241409" />
+                  <circle cx="-4" cy="-3" r="1.6" fill="#ffffff" />
+                  <circle cx="4" cy="-3" r="1.6" fill="#ffffff" />
+                  <g transform="translate(26, -8)">
+                    <line x1="0" y1="0" x2="0" y2="26" stroke="#422a14" stroke-width="2.5" />
+                    <rect x="-16" y="-14" width="32" height="18" rx="3" fill="#ffffff" stroke="#d92b2b" stroke-width="2" />
+                    <polyline points="-11,-10 -3,-4 2,-7 11,1" fill="none" stroke="#d92b2b" stroke-width="2.2" />
+                  </g>
+                </g>
+              </g>
+
+              <g id="props-flood" style="display:none;">
+                <ellipse cx="215" cy="215" rx="34" ry="14" fill="#3a85ad" opacity="0.78" />
+                <ellipse cx="168" cy="258" rx="26" ry="11" fill="#3a85ad" opacity="0.75" />
+                <g fill="#5b7080" opacity="0.92">
+                  <ellipse cx="195" cy="95" rx="38" ry="16" />
+                  <ellipse cx="222" cy="90" rx="28" ry="18" />
+                  <ellipse cx="285" cy="115" rx="42" ry="16" />
+                </g>
+                <line class="rain-line" x1="180" y1="110" x2="160" y2="260" />
+                <line class="rain-line" x1="205" y1="110" x2="185" y2="265" />
+                <line class="rain-line" x1="230" y1="110" x2="210" y2="260" />
+                <line class="rain-line" x1="275" y1="130" x2="255" y2="280" />
+                <line class="rain-line" x1="300" y1="130" x2="280" y2="280" />
+              </g>
+
+              <g id="props-winter" style="display:none;">
+                <g transform="translate(268, 222)">
+                  <circle cx="0" cy="10" r="10" fill="#ffffff" stroke="#89adc4" stroke-width="1.2" />
+                  <circle cx="0" cy="-2" r="7.5" fill="#ffffff" stroke="#89adc4" stroke-width="1.2" />
+                  <circle cx="-2.5" cy="-4" r="1.2" fill="#1d2b36" />
+                  <circle cx="2.5" cy="-4" r="1.2" fill="#1d2b36" />
+                  <polygon points="0,-2 8,0 0,1.5" fill="#f07c14" />
+                  <rect x="-6" y="-12" width="12" height="3" fill="#143366" />
+                  <rect x="-4" y="-18" width="8" height="7" fill="#143366" />
+                </g>
+                <g transform="translate(158, 272)">
+                  <line x1="0" y1="0" x2="0" y2="22" stroke="#4f6373" stroke-width="2.5" />
+                  <polygon points="0,-22 -15,2 15,2" fill="#ffffff" stroke="#d92b2b" stroke-width="3" stroke-linejoin="round" />
+                  <text x="0" y="-2" text-anchor="middle" fill="#143366" font-size="12" font-weight="900">❄</text>
+                </g>
+              </g>
+            </svg>
+
+            <div id="map-shock-popup" class="hidden" role="dialog" aria-live="polite">
+              <div class="shock-popup-art" id="shock-popup-art-box"></div>
+              <div class="shock-popup-body">
+                <h3 class="shock-popup-title" id="shock-popup-title">Stock Market Crash</h3>
+                <p class="shock-popup-desc" id="shock-popup-desc"></p>
+                <button type="button" class="shock-popup-close" id="btn-close-shock-popup">Close</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================================
+           STEP 4.2: TAB 4 — PRESS ROOM (THREE DYNAMIC NEWSPAPER FRONT PAGES)
+           ====================================================================== -->
+      <section id="view-press" class="game-view" data-view="press">
+        <div class="press-room-stage">
+          <div class="press-Three-grid" id="press-newspapers-grid"></div>
+
+          <div id="press-zoom-modal" class="hidden" role="dialog" aria-modal="true">
+            <div id="press-zoom-content"></div>
+            <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+              <button type="button" class="adv-btn primary" id="btn-close-press-zoom">Close Newspaper</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================================
+           STEP 4.3: TAB 5 — GLOSSARY (INTERACTIVE MONETARY POLICY ENCYCLOPEDIA)
+           ====================================================================== -->
+      <section id="view-glossary" class="game-view" data-view="glossary">
+        <div class="glossary-layout">
+          <aside class="glossary-sidebar">
+            <div class="glossary-search-box">
+              <input type="text" id="glossary-search" class="glossary-search-input" placeholder="Search glossary topics..." aria-label="Search glossary topics" />
+            </div>
+            <div class="glossary-term-list" id="glossary-term-list"></div>
+          </aside>
+
+          <article class="glossary-article-card" id="glossary-article-card"></article>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- STEP 1.3A: PERSISTENT KEY INTEREST RATE SLIDER BAR -->
+    <section id="rate-control-bar" aria-label="Key Interest Rate Control">
+      <div class="slider-track-wrapper" id="slider-track-area">
+        <div class="slider-ticks" id="slider-ticks">
+          <div id="slider-fill"></div>
+        </div>
+
+        <div id="slider-callout" role="slider" aria-valuemin="0" aria-valuemax="20" aria-valuenow="2.00" tabindex="0">
+          <div class="callout-title">Key Interest Rate</div>
+          <div class="callout-controls">
+            <button type="button" class="step-btn" id="btn-rate-dec" title="Decrease by 0.25%">&lt;</button>
+            <span id="rate-display-value">2.00%</span>
+            <button type="button" class="step-btn" id="btn-rate-inc" title="Increase by 0.25%">&gt;</button>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" id="action-ok-btn" title="Confirm Quarterly Decision">OK</button>
+    </section>
+
+    <!-- STEP 1.3B: FIVE-PAGE HOTBAR NAVIGATION -->
+    <nav id="hotbar-nav" aria-label="Main Game Navigation">
+      <button type="button" class="hotbar-tab" data-target="indicators">
+        <span class="tab-badge hidden" id="badge-indicators">i</span>
+        <svg class="tab-icon" viewBox="0 0 32 24">
+          <path d="M6 10 L10 4 H13 L12 10 Z M26 10 L22 4 H19 L20 10 Z" />
+          <rect x="12" y="7" width="8" height="3" rx="1" />
+          <circle cx="8" cy="15" r="5.5" stroke="currentColor" stroke-width="2" fill="none" />
+          <circle cx="24" cy="15" r="5.5" stroke="currentColor" stroke-width="2" fill="none" />
+          <circle cx="8" cy="15" r="2" />
+          <circle cx="24" cy="15" r="2" />
+        </svg>
+        <span class="tab-label">Indicators</span>
+      </button>
+
+      <button type="button" class="hotbar-tab" data-target="team">
+        <span class="tab-badge" id="badge-team">i</span>
+        <svg class="tab-icon" viewBox="0 0 32 24">
+          <circle cx="16" cy="7" r="4" />
+          <path d="M9 21 C9 16 23 16 23 21 Z" />
+          <circle cx="7" cy="9" r="3" />
+          <path d="M2 21 C2 17 11 17 11 21 Z" />
+          <circle cx="25" cy="9" r="3" />
+          <path d="M21 21 C21 17 30 17 30 21 Z" />
+        </svg>
+        <span class="tab-label">Your Team</span>
+      </button>
+
+      <button type="button" class="hotbar-tab active" data-target="map">
+        <span class="tab-badge hidden" id="badge-map">i</span>
+        <svg class="tab-icon" viewBox="0 0 32 24">
+          <polygon points="3,15 12,7 29,11 21,20" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.25" />
+          <path d="M11 12 L15 9 L20 11 L18 16 L12 15 Z" />
+          <circle cx="16" cy="12" r="2" fill="#ffcc00" />
+        </svg>
+        <span class="tab-label">Map</span>
+      </button>
+
+      <button type="button" class="hotbar-tab" data-target="press">
+        <span class="tab-badge" id="badge-press">i</span>
+        <svg class="tab-icon" viewBox="0 0 32 24">
+          <rect x="4" y="3" width="24" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
+          <rect x="7" y="6" width="8" height="6" />
+          <line x1="17" y1="7" x2="25" y2="7" stroke="currentColor" stroke-width="2" />
+          <line x1="17" y1="11" x2="25" y2="11" stroke="currentColor" stroke-width="2" />
+          <line x1="7" y1="15" x2="25" y2="15" stroke="currentColor" stroke-width="1.8" />
+          <line x1="7" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="1.8" />
+        </svg>
+        <span class="tab-label">Press Room</span>
+      </button>
+
+      <button type="button" class="hotbar-tab" data-target="glossary">
+        <span class="tab-badge hidden" id="badge-glossary">i</span>
+        <svg class="tab-icon" viewBox="0 0 32 24">
+          <path d="M4 5 C9 4 14 5 16 7 C18 5 23 4 28 5 V19 C23 18 18 19 16 21 C14 19 9 18 4 19 Z" fill="none" stroke="currentColor" stroke-width="2" />
+          <line x1="16" y1="7" x2="16" y2="21" stroke="currentColor" stroke-width="2" />
+        </svg>
+        <span class="tab-label">Glossary</span>
+      </button>
+    </nav>
+
+    <!-- SYSTEM FOOTER STRIP -->
+    <footer id="system-footer">
+      <a class="footer-link" data-sys-modal="new-game">New Game</a>
+      <span class="footer-sep">|</span>
+      <a class="footer-link" data-sys-modal="hall-of-fame">Hall of Fame</a>
+      <span class="footer-sep">|</span>
+      <a class="footer-link" data-sys-modal="share">Share</a>
+      <span class="footer-sep">|</span>
+      <a class="footer-link" data-sys-modal="credits">Credits</a>
+      <span class="footer-sep">|</span>
+      <a class="footer-link" data-sys-modal="licence">Licence</a>
+      <span class="footer-sep">|</span>
+      <a class="footer-link" data-sys-modal="disclaimer">Disclaimer</a>
+      <span class="footer-sep">|</span>
+      <a class="footer-link" href="https://www.ecb.europa.eu" target="_blank" rel="noopener">ECB Home</a>
+      <span class="footer-right">€conomia – The Monetary Policy Game (Complete Edition)</span>
+    </footer>
+
+  </div>
+
+  <!-- ==========================================================================
+       COMPLETE APPLICATION SCRIPT (PHASES 1 – 5)
+       ========================================================================== -->
+  <script>
+    (function () {
+      "use strict";
+
+      /* ------------------------------------------------------------------------
+         1. Responsive Stage Auto-Scaler (Preserves 960x640 Aspect Ratio)
+         ------------------------------------------------------------------------ */
+      const stageWrapper = document.getElementById("stage-wrapper");
+      function resizeStage() {
+        const scaleX = window.innerWidth / 960;
+        const scaleY = window.innerHeight / 640;
+        const scale = Math.min(scaleX, scaleY, 1.38) * 0.96;
+        stageWrapper.style.transform = `scale(${scale.toFixed(4)})`;
+      }
+      window.addEventListener("resize", resizeStage);
+      resizeStage();
+
+      /* ========================================================================
+         STEP 5.4: NATIVE WEB AUDIO API SOUND SYNTHESIZER (ZERO EXTERNAL FILES)
+         ======================================================================== */
+      const SoundEngine = {
+        ctx: null,
+        muted: false,
+        lastTickTime: 0,
+
+        ensureContext() {
+          if (this.muted) return null;
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+              this.ctx = new AudioCtx();
+            }
+          }
+          if (this.ctx && this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+          return this.ctx;
+        },
+
+        playTone(freq, type, duration, gainVal, delay = 0) {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime + delay;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = type || "sine";
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(gainVal, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + duration);
+          } catch (e) {}
+        },
+
+        playClick() {
+          this.playTone(620, "triangle", 0.055, 0.08, 0);
+        },
+
+        playSliderTick(rateVal) {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          const nowMs = performance.now();
+          if (nowMs - this.lastTickTime < 28) return;
+          this.lastTickTime = nowMs;
+          const freq = 320 + (rateVal / 20) * 520;
+          this.playTone(freq, "sine", 0.04, 0.06, 0);
+        },
+
+        playTabSwitch(tabName) {
+          if (tabName === "press") {
+            // Soft newspaper page rustle chord
+            this.playTone(280, "triangle", 0.09, 0.06, 0);
+            this.playTone(420, "sine", 0.08, 0.05, 0.03);
+          } else if (tabName === "team") {
+            // Council chime
+            this.playTone(523.25, "sine", 0.14, 0.07, 0);
+            this.playTone(659.25, "sine", 0.18, 0.07, 0.06);
+          } else {
+            this.playTone(480, "sine", 0.07, 0.06, 0);
+          }
+        },
+
+        playQuarterAdvance() {
+          this.playTone(440, "sine", 0.09, 0.08, 0);
+          this.playTone(554.37, "sine", 0.12, 0.08, 0.05);
+        },
+
+        playShockAlert() {
+          this.playTone(220, "sawtooth", 0.22, 0.08, 0);
+          this.playTone(196, "sawtooth", 0.32, 0.09, 0.14);
+        },
+
+        playYearReview(starEarned) {
+          if (starEarned) {
+            // Uplifting Gold Star Fanfare (C5 - E5 - G5 - C6)
+            this.playTone(523.25, "triangle", 0.18, 0.1, 0.00);
+            this.playTone(659.25, "triangle", 0.18, 0.1, 0.10);
+            this.playTone(783.99, "triangle", 0.22, 0.1, 0.20);
+            this.playTone(1046.50, "triangle", 0.42, 0.12, 0.32);
+          } else {
+            // Cautionary two-note motif
+            this.playTone(349.23, "sine", 0.20, 0.09, 0.00);
+            this.playTone(311.13, "sine", 0.32, 0.09, 0.16);
+          }
+        },
+
+        playTrophyFanfare() {
+          const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
+          const delays = [0.0, 0.11, 0.22, 0.34, 0.50, 0.64];
+          notes.forEach((n, idx) => {
+            this.playTone(n, "triangle", idx === notes.length - 1 ? 0.55 : 0.18, 0.11, delays[idx]);
+          });
+        }
+      };
+
+      /* ========================================================================
+         STEP 2.3: EXOGENOUS SHOCK LIBRARY & SCHEDULER
+         ======================================================================== */
+      const SHOCK_LIBRARY = {
+        stock_crash: {
+          id: "stock_crash",
+          title: "Stock Market Crash",
+          headline: "Shares Plunge Across Euro Area Exchanges",
+          description: "A sharp drop in stock prices saps business confidence and household wealth, pulling down demand and inflation.",
+          epsG: -2.20,
+          epsPi: -0.60,
+          epsM: -0.80,
+          mapTheme: "bear"
+        },
+        stock_rally: {
+          id: "stock_rally",
+          title: "Stock Market Rally",
+          headline: "Bull Run Lifts Eurozone Markets to Record Highs",
+          description: "Surging share prices boost corporate investment and consumer optimism, accelerating production growth and price pressures.",
+          epsG: 2.00,
+          epsPi: 0.50,
+          epsM: 0.75,
+          mapTheme: "normal"
+        },
+        floods: {
+          id: "floods",
+          title: "Floods",
+          headline: "Severe Flooding Disrupts Transport and Harvests",
+          description: "Heavy rains and overflowing rivers damage infrastructure and crops, slowing production while pushing up prices.",
+          epsG: -1.10,
+          epsPi: 1.10,
+          epsM: 0.10,
+          mapTheme: "flood"
+        },
+        winter_weather: {
+          id: "winter_weather",
+          title: "Wintery Weather",
+          headline: "Freeze Brings Traffic Standstill Across Europe",
+          description: "Sub-zero temperatures and heavy snowstorms halt construction and transport while spiking heating and energy costs.",
+          epsG: -1.40,
+          epsPi: 0.90,
+          epsM: 0.00,
+          mapTheme: "winter"
+        },
+        oil_surge: {
+          id: "oil_surge",
+          title: "Oil Price Hike",
+          headline: "Crude Oil Spike Squeezes Firms and Commuters",
+          description: "A sudden jump in global energy prices raises production and transport costs, fueling inflation while dampening growth.",
+          epsG: -0.95,
+          epsPi: 1.25,
+          epsM: 0.20,
+          mapTheme: "normal"
+        },
+        global_boom: {
+          id: "global_boom",
+          title: "Global Export Boom",
+          headline: "Surging World Demand Fills Eurozone Order Books",
+          description: "Rapid growth in international trade boosts Euro Area manufacturing output and gradually tightens capacity.",
+          epsG: 1.65,
+          epsPi: 0.45,
+          epsM: 0.50,
+          mapTheme: "normal"
+        },
+        confidence_slump: {
+          id: "confidence_slump",
+          title: "Confidence Slump",
+          headline: "Shoppers Tighten Belts Amid Economic Uncertainty",
+          description: "Households increase precautionary savings and delay major purchases, cooling retail demand and price growth.",
+          epsG: -1.50,
+          epsPi: -0.55,
+          epsM: -0.45,
+          mapTheme: "bear"
+        }
+      };
+
+      const SHOCK_KEYS = Object.keys(SHOCK_LIBRARY);
+
+      function generateShockSchedule() {
+        const schedule = {};
+        let nextQ = 3 + Math.floor(Math.random() * 2);
+        let lastShockId = null;
+
+        while (nextQ <= 31) {
+          const candidates = SHOCK_KEYS.filter((k) => k !== lastShockId);
+          const chosenKey = candidates[Math.floor(Math.random() * candidates.length)];
+          schedule[nextQ] = chosenKey;
+          lastShockId = chosenKey;
+          nextQ += 3 + Math.floor(Math.random() * 3);
+        }
+        return schedule;
+      }
+
+      /* ========================================================================
+         STEP 2.2: TWO-PILLAR MACROECONOMIC MODEL & FORECAST ENGINE
+         ======================================================================== */
+      const MODEL_PARAMS = {
+        rStar: 1.00,
+        gStar: 2.25,
+        mStar: 4.50,
+        uStar: 7.50,
+        piTarget: 1.90
+      };
+
+      function clamp(val, min, max) {
+        return Math.max(min, Math.min(max, val));
+      }
+
+      function round2(val) {
+        return Math.round(val * 100) / 100;
+      }
+
+      function stepMacroQuarter(prev, rateT, shock) {
+        const epsG = shock ? shock.epsG : 0.0;
+        const epsPi = shock ? shock.epsPi : 0.0;
+        const epsM = shock ? shock.epsM : 0.0;
+
+        const deltaR_t = rateT - (prev.pi_t + MODEL_PARAMS.rStar);
+        const deltaR_prev = prev.rate_prev - (prev.pi_prev + MODEL_PARAMS.rStar);
+
+        const rawG =
+          0.65 * prev.g_t +
+          0.35 * MODEL_PARAMS.gStar -
+          0.32 * deltaR_t -
+          0.18 * deltaR_prev +
+          epsG;
+        const g_next = round2(clamp(rawG, -8.0, 10.0));
+
+        const rawM =
+          0.60 * prev.m_t +
+          0.40 * MODEL_PARAMS.mStar +
+          0.35 * (prev.g_t - MODEL_PARAMS.gStar) -
+          0.40 * deltaR_t +
+          epsM;
+        const m_next = round2(clamp(rawM, -5.0, 18.0));
+
+        const rawU =
+          prev.u_t -
+          0.28 * (g_next - MODEL_PARAMS.gStar) +
+          0.08 * (MODEL_PARAMS.uStar - prev.u_t);
+        const u_next = round2(clamp(rawU, 2.5, 22.0));
+
+        const rawPi =
+          0.72 * prev.pi_t +
+          0.28 * (prev.g_t - MODEL_PARAMS.gStar) +
+          0.18 * (prev.m_prev - MODEL_PARAMS.mStar) -
+          0.15 * deltaR_prev +
+          epsPi;
+        const pi_next = round2(clamp(rawPi, -6.0, 18.0));
+
+        return {
+          keyRate: round2(rateT),
+          inflation: pi_next,
+          production: g_next,
+          moneyGrowth: m_next,
+          unemployment: u_next
+        };
+      }
+
+      /* ========================================================================
+         STEP 2.1: GAMESTATE STORE & 32-QUARTER PROGRESSION LOOP
+         ======================================================================== */
+      const GameState = {
+        playerName: "Christine",
+        playerAge: 35,
+        startYear: 2011,
+        totalYears: 8,
+        totalQuarters: 32,
+        currentQuarter: 1,
+        candidateKeyRate: 2.00,
+        activeTab: "map",
+        selectedAdvisorIndex: 4,
+        selectedGlossaryId: "price_stability",
+        gameCompleted: false,
+        pendingEndGameAfterAnnual: false,
+        mapTheme: "normal",
+        activeShock: null,
+        forcedNextShockId: null,
+        shockSchedule: {},
+        starsEarned: [false, false, false, false, false, false, false, false],
+        annualReviews: [],
+        lastFinalResult: null,
+        history: []
+      };
+
+      function initGameState() {
+        GameState.currentQuarter = 1;
+        GameState.candidateKeyRate = 2.00;
+        GameState.gameCompleted = false;
+        GameState.pendingEndGameAfterAnnual = false;
+        GameState.mapTheme = "normal";
+        GameState.activeShock = null;
+        GameState.forcedNextShockId = null;
+        GameState.shockSchedule = generateShockSchedule();
+        GameState.starsEarned = [false, false, false, false, false, false, false, false];
+        GameState.annualReviews = [];
+        GameState.lastFinalResult = null;
+
+        GameState.history = [
+          { qIndex: -2, label: "2010 Q2", shortLabel: "Q2", keyRate: 1.75, inflation: 1.82, production: 2.40, moneyGrowth: 3.10, unemployment: 7.35, shock: null },
+          { qIndex: -1, label: "2010 Q3", shortLabel: "Q3", keyRate: 1.75, inflation: 1.89, production: 2.58, moneyGrowth: 3.22, unemployment: 7.25, shock: null },
+          { qIndex: 0,  label: "2010 Q4", shortLabel: "Q4", keyRate: 2.00, inflation: 1.93, production: 2.68, moneyGrowth: 3.30, unemployment: 7.19, shock: null },
+          { qIndex: 1,  label: "2011 Q1", shortLabel: "Q1", keyRate: 2.00, inflation: 1.96, production: 2.75, moneyGrowth: 3.35, unemployment: 7.15, shock: null }
+        ];
+
+        document.getElementById("map-shock-popup").classList.add("hidden");
+        document.getElementById("advisor-detail-modal").classList.add("hidden");
+        document.getElementById("press-zoom-modal").classList.add("hidden");
+        document.getElementById("annual-review-modal").classList.add("hidden");
+        document.getElementById("endgame-modal").classList.add("hidden");
+        document.getElementById("header-player-tag").textContent = `Pres. ${GameState.playerName}`;
+      }
+
+      function getCurrentRecord() {
+        return GameState.history[GameState.history.length - 1];
+      }
+
+      function getPreviousRecord() {
+        return GameState.history[GameState.history.length - 2];
+      }
+
+      function formatQuarterLabel(qNum) {
+        const yrOffset = Math.floor((qNum - 1) / 4);
+        const calYr = GameState.startYear + yrOffset;
+        const qInYr = ((qNum - 1) % 4) + 1;
+        return `${calYr} Q${qInYr}`;
+      }
+
+      function formatShortQuarter(qNum) {
+        const qInYr = ((qNum - 1) % 4) + 1;
+        return `Q${qInYr}`;
+      }
+
+      function computeForecast(candidateRate) {
+        const curr = getCurrentRecord();
+        const prev = getPreviousRecord();
+
+        const recentSlice = GameState.history.slice(-4).map((r) => r.inflation);
+        const meanPi = recentSlice.reduce((a, b) => a + b, 0) / recentSlice.length;
+        const variancePi = recentSlice.reduce((acc, v) => acc + Math.pow(v - meanPi, 2), 0) / recentSlice.length;
+        const stdPi = Math.sqrt(variancePi);
+        const volBonus = clamp(stdPi * 0.35, 0, 0.45);
+
+        let simState = {
+          pi_t: curr.inflation,
+          pi_prev: prev.inflation,
+          g_t: curr.production,
+          m_t: curr.moneyGrowth,
+          m_prev: prev.moneyGrowth,
+          u_t: curr.unemployment,
+          rate_prev: curr.keyRate
+        };
+
+        const baseBandsInfl = [0.55, 0.90, 1.30];
+        const baseBandsProd = [0.60, 0.95, 1.35];
+        const projections = [];
+
+        for (let step = 1; step <= 3; step++) {
+          const nextQNum = GameState.currentQuarter + step;
+          const stepResult = stepMacroQuarter(simState, candidateRate, null);
+
+          const inflHalf = round2(baseBandsInfl[step - 1] + volBonus);
+          const prodHalf = round2(baseBandsProd[step - 1] + volBonus * 0.8);
+
+          projections.push({
+            step,
+            qNum: nextQNum,
+            label: formatQuarterLabel(nextQNum),
+            shortLabel: formatShortQuarter(nextQNum),
+            keyRate: round2(candidateRate),
+            inflation: stepResult.inflation,
+            inflMin: round2(stepResult.inflation - inflHalf),
+            inflMax: round2(stepResult.inflation + inflHalf),
+            inflBand: inflHalf,
+            production: stepResult.production,
+            prodMin: round2(stepResult.production - prodHalf),
+            prodMax: round2(stepResult.production + prodHalf),
+            prodBand: prodHalf,
+            moneyGrowth: stepResult.moneyGrowth,
+            unemployment: stepResult.unemployment
+          });
+
+          simState = {
+            pi_t: stepResult.inflation,
+            pi_prev: simState.pi_t,
+            g_t: stepResult.production,
+            m_t: stepResult.moneyGrowth,
+            m_prev: simState.m_t,
+            u_t: stepResult.unemployment,
+            rate_prev: candidateRate
+          };
+        }
+
+        return projections;
+      }
+
+      function evaluateInflationWindow(records) {
+        const vals = records.map((r) => r.inflation);
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const variance = vals.reduce((acc, v) => acc + Math.pow(v - avg, 2), 0) / vals.length;
+        const stdDev = Math.sqrt(variance);
+
+        let variationLabel = "very low";
+        if (stdDev >= 0.95) {
+          variationLabel = "high";
+        } else if (stdDev >= 0.60) {
+          variationLabel = "moderate";
+        } else if (stdDev >= 0.30) {
+          variationLabel = "low";
+        }
+
+        const starEarned = avg >= 1.40 && avg < 2.05 && stdDev < 0.65;
+
+        let headline = "Watch out!";
+        let commentary = "Inflation drifted away from our price stability target this year. Keep a close eye on the 3-quarter forecast fan cone and adjust the Key Interest Rate smoothly.";
+
+        if (starEarned && avg >= 1.65 && avg <= 2.00 && stdDev < 0.35) {
+          headline = "You've struck gold!";
+          commentary = "Outstanding monetary policy! You kept average inflation right below, but close to, 2.00% with minimal variation, earning a well-deserved Gold Star.";
+        } else if (starEarned) {
+          headline = "Pretty good job!";
+          commentary = "Solid performance! Inflation stayed near the price stability target with controlled variation, earning you a Gold Star for the year.";
+        } else if (avg < 0) {
+          headline = "Deflation danger!";
+          commentary = "Average inflation fell below zero into deflation territory! Lower interest rates promptly when demand slumps so prices and jobs can recover.";
+        } else if (avg < 1.40) {
+          headline = "Inflation is too low!";
+          commentary = "Inflation slipped below our target zone of 'below, but close to, 2%'. A slightly lower Key Interest Rate would help guide inflation back toward 1.8%–1.95%.";
+        } else if (avg >= 2.05) {
+          headline = "Inflation is running too hot!";
+          commentary = "Average inflation exceeded our 2.00% ceiling this year. Remember to raise the Key Interest Rate proactively when demand or money growth heats up.";
+        }
+
+        return {
+          avgInflation: round2(avg),
+          stdDev: round2(stdDev),
+          variationLabel,
+          starEarned,
+          headline,
+          commentary
+        };
+      }
+
+      /* ========================================================================
+         STEP 5.2 & 5.3: HALL OF FAME STORAGE, ANNUAL MODAL & END-GAME CEREMONY
+         ======================================================================== */
+      const HOF_STORAGE_KEY = "economia_ecb_hall_of_fame_v1";
+
+      const DEFAULT_HOF_ENTRIES = [
+        { name: "Jean-Claude", age: 64, stars: 8, avgInflation: 1.89, variation: "very low", score: 9640, isPlayer: false },
+        { name: "Mario", age: 63, stars: 7, avgInflation: 1.84, variation: "very low", score: 9120, isPlayer: false },
+        { name: "Christine", age: 60, stars: 7, avgInflation: 1.92, variation: "low", score: 8950, isPlayer: false },
+        { name: "Wim", age: 61, stars: 6, avgInflation: 1.78, variation: "low", score: 8210, isPlayer: false },
+        { name: "Elena", age: 41, stars: 6, avgInflation: 1.95, variation: "low", score: 7980, isPlayer: false },
+        { name: "Stefan", age: 34, stars: 5, avgInflation: 1.71, variation: "moderate", score: 7150, isPlayer: false },
+        { name: "Marco", age: 29, stars: 4, avgInflation: 2.12, variation: "moderate", score: 6240, isPlayer: false },
+        { name: "Henri", age: 52, stars: 3, avgInflation: 2.34, variation: "moderate", score: 5180, isPlayer: false },
+        { name: "Lukas", age: 25, stars: 2, avgInflation: 2.68, variation: "high", score: 4100, isPlayer: false }
+      ];
+
+      function loadHallOfFame() {
+        try {
+          const raw = localStorage.getItem(HOF_STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              return parsed;
+            }
+          }
+        } catch (e) {}
+        return DEFAULT_HOF_ENTRIES.map((x) => ({ ...x }));
+      }
+
+      function saveHallOfFame(entries) {
+        try {
+          localStorage.setItem(HOF_STORAGE_KEY, JSON.stringify(entries));
+        } catch (e) {}
+      }
+
+      function recordScoreInHallOfFame(finalResult) {
+        const list = loadHallOfFame().map((item) => ({ ...item, isPlayer: false }));
+        list.push({
+          name: GameState.playerName,
+          age: GameState.playerAge,
+          stars: finalResult.totalStars,
+          avgInflation: finalResult.avgInflation,
+          variation: finalResult.variationLabel,
+          score: finalResult.score,
+          isPlayer: true
+        });
+        list.sort((a, b) => b.score - a.score || b.stars - a.stars);
+        const top9 = list.slice(0, 9);
+        saveHallOfFame(top9);
+        return top9;
+      }
+
+      function showAnnualReviewModal(reviewObj, isFinalQuarter) {
+        SoundEngine.playYearReview(reviewObj.starEarned);
+        GameState.pendingEndGameAfterAnnual = Boolean(isFinalQuarter);
+
+        document.getElementById("annual-modal-header-title").textContent =
+          `Year ${reviewObj.yearNumber} Evaluation (${reviewObj.calendarYear})`;
+        document.getElementById("annual-modal-headline").textContent = reviewObj.headline;
+        document.getElementById("annual-modal-subtext").textContent = reviewObj.starEarned
+          ? `Gold Star Awarded for Year ${reviewObj.yearNumber}!`
+          : `No Gold Star Awarded for Year ${reviewObj.yearNumber}`;
+        document.getElementById("annual-modal-avg").textContent = `${reviewObj.avgInflation.toFixed(2)}%`;
+        document.getElementById("annual-modal-var").textContent = reviewObj.variationLabel;
+        document.getElementById("annual-modal-commentary").textContent = reviewObj.commentary;
+
+        document.getElementById("annual-modal-star-svg").innerHTML = `
+          <svg viewBox="0 0 64 64" width="100%" height="100%">
+            <polygon points="32,4 40.5,21.5 60,24.3 45.8,38 49.2,57.5 32,48.3 14.8,57.5 18.2,38 4,24.3 23.5,21.5"
+              fill="${reviewObj.starEarned ? "#f5b800" : "#d0dad4"}"
+              stroke="${reviewObj.starEarned ? "#9e6b00" : "#7c8d84"}"
+              stroke-width="3" />
+          </svg>
+        `;
+
+        document.getElementById("annual-review-modal").classList.remove("hidden");
+      }
+
+      function computeFinal8YearEvaluation() {
+        const playedRecords = GameState.history.slice(-32);
+        const eval8 = evaluateInflationWindow(playedRecords);
+        const totalStars = GameState.starsEarned.filter(Boolean).length;
+
+        const avgProd = round2(
+          playedRecords.reduce((acc, r) => acc + r.production, 0) / playedRecords.length
+        );
+        const endUnemp = playedRecords[playedRecords.length - 1].unemployment;
+
+        // Calculate numeric score (0 to 10,000)
+        const starPoints = totalStars * 900; // up to 7,200
+        const distPenalty = Math.abs(eval8.avgInflation - 1.88) * 950;
+        const volPenalty = eval8.stdDev * 850;
+        const unempPenalty = Math.max(0, endUnemp - 7.5) * 180;
+        const rawScore = Math.round(7200 + 2800 - distPenalty - volPenalty - unempPenalty);
+        const score = Math.max(600, Math.min(10000, Math.min(starPoints + 2800, rawScore)));
+
+        let rankTitle = "Apprentice Central Banker";
+        let summaryText = "Steering a currency union through 8 years of economic shocks is a demanding task. Review the time lags in the Glossary and try another term!";
+        if (totalStars >= 7) {
+          rankTitle = "Grand Master of Price Stability";
+          summaryText = "Magnificent leadership! You anchored inflation expectations below, but close to, 2.00% across eight turbulent years and earned a place among the legends of Frankfurt.";
+        } else if (totalStars >= 5) {
+          rankTitle = "Steady Hand of Frankfurt";
+          summaryText = "Impressive 8-year term! Despite weather disruptions and market swings, you kept Euro Area prices stable in most years.";
+        } else if (totalStars >= 3) {
+          rankTitle = "Prudent Council Governor";
+          summaryText = "A respectable mandate! You navigated several major economic shocks, though inflation occasionally drifted outside the sweet spot.";
+        }
+
+        return {
+          totalStars,
+          avgInflation: eval8.avgInflation,
+          variationLabel: eval8.variationLabel,
+          avgProduction: avgProd,
+          endUnemployment: endUnemp,
+          score,
+          rankTitle,
+          summaryText
+        };
+      }
+
+      function showEndGameModal() {
+        const result = computeFinal8YearEvaluation();
+        GameState.lastFinalResult = result;
+        GameState.gameCompleted = true;
+        recordScoreInHallOfFame(result);
+        SoundEngine.playTrophyFanfare();
+
+        document.getElementById("endgame-stars-readout").textContent = `${result.totalStars} / 8 Gold Stars`;
+        document.getElementById("endgame-score-readout").textContent = `Score: ${result.score.toLocaleString()} pts`;
+        document.getElementById("endgame-rank-badge").textContent = result.rankTitle;
+        document.getElementById("endgame-headline").textContent =
+          `Mandate Complete, President ${GameState.playerName}!`;
+        document.getElementById("endgame-summary-text").textContent = result.summaryText;
+        document.getElementById("endgame-avg-infl").textContent = `${result.avgInflation.toFixed(2)}%`;
+        document.getElementById("endgame-var-infl").textContent = result.variationLabel;
+        document.getElementById("endgame-avg-prod").textContent = `${result.avgProduction.toFixed(2)}%`;
+        document.getElementById("endgame-end-unemp").textContent = `${result.endUnemployment.toFixed(2)}%`;
+
+        document.getElementById("endgame-modal").classList.remove("hidden");
+      }
+
+      document.getElementById("btn-annual-continue").addEventListener("click", () => {
+        SoundEngine.playClick();
+        document.getElementById("annual-review-modal").classList.add("hidden");
+        if (GameState.pendingEndGameAfterAnnual) {
+          GameState.pendingEndGameAfterAnnual = false;
+          showEndGameModal();
+        }
+      });
+
+      function advanceQuarter() {
+        if (GameState.gameCompleted) {
+          showEndGameModal();
+          return;
+        }
+
+        const curr = getCurrentRecord();
+        const prev = getPreviousRecord();
+
+        curr.keyRate = round2(GameState.candidateKeyRate);
+
+        const completedQ = GameState.currentQuarter;
+        const nextQ = completedQ + 1;
+
+        let shockObj = null;
+        if (GameState.forcedNextShockId && SHOCK_LIBRARY[GameState.forcedNextShockId]) {
+          shockObj = SHOCK_LIBRARY[GameState.forcedNextShockId];
+          GameState.forcedNextShockId = null;
+        } else if (nextQ <= 32 && GameState.shockSchedule[nextQ]) {
+          shockObj = SHOCK_LIBRARY[GameState.shockSchedule[nextQ]];
+        }
+
+        const nextMetrics = stepMacroQuarter(
+          {
+            pi_t: curr.inflation,
+            pi_prev: prev.inflation,
+            g_t: curr.production,
+            m_t: curr.moneyGrowth,
+            m_prev: prev.moneyGrowth,
+            u_t: curr.unemployment,
+            rate_prev: prev.keyRate
+          },
+          curr.keyRate,
+          shockObj
+        );
+
+        let triggeredAnnualReview = null;
+        if (completedQ % 4 === 0) {
+          const yearIndex = Math.floor((completedQ - 1) / 4);
+          const yearRecords = [
+            ...GameState.history.slice(-3),
+            { inflation: nextMetrics.inflation }
+          ];
+          const review = evaluateInflationWindow(yearRecords);
+          GameState.starsEarned[yearIndex] = review.starEarned;
+          triggeredAnnualReview = {
+            yearNumber: yearIndex + 1,
+            calendarYear: GameState.startYear + yearIndex,
+            ...review
+          };
+          GameState.annualReviews[yearIndex] = triggeredAnnualReview;
+        }
+
+        const isEndOfMandate = completedQ >= GameState.totalQuarters;
+
+        if (!isEndOfMandate) {
+          GameState.currentQuarter = nextQ;
+          GameState.activeShock = shockObj;
+          GameState.mapTheme = shockObj ? shockObj.mapTheme : "normal";
+
+          const newRecord = {
+            qIndex: nextQ,
+            label: formatQuarterLabel(nextQ),
+            shortLabel: formatShortQuarter(nextQ),
+            keyRate: round2(GameState.candidateKeyRate),
+            inflation: nextMetrics.inflation,
+            production: nextMetrics.production,
+            moneyGrowth: nextMetrics.moneyGrowth,
+            unemployment: nextMetrics.unemployment,
+            shock: shockObj ? shockObj.id : null
+          };
+
+          GameState.history.push(newRecord);
+
+          if (shockObj) {
+            SoundEngine.playShockAlert();
+            showShockPopup(shockObj);
+          } else {
+            if (!triggeredAnnualReview) {
+              SoundEngine.playQuarterAdvance();
+            }
+            document.getElementById("map-shock-popup").classList.add("hidden");
+          }
+
+          document.getElementById("badge-press").classList.remove("hidden");
+          if (shockObj || newRecord.inflation < 1.35 || newRecord.inflation > 2.15 || newRecord.unemployment > 8.5) {
+            document.getElementById("badge-team").classList.remove("hidden");
+            document.getElementById("badge-indicators").classList.remove("hidden");
+          }
+        } else {
+          // Record final 32nd quarter outcome before showing Year 8 review & Trophy modal
+          curr.inflation = nextMetrics.inflation;
+          curr.production = nextMetrics.production;
+          curr.moneyGrowth = nextMetrics.moneyGrowth;
+          curr.unemployment = nextMetrics.unemployment;
+        }
+
+        renderAll();
+
+        if (triggeredAnnualReview) {
+          showAnnualReviewModal(triggeredAnnualReview, isEndOfMandate);
+        }
+      }
+
+      /* ========================================================================
+         STEP 3.1: RENDER EURO AREA MULTI-LINE & FAN CHART (LEFT MAP PANEL)
+         ======================================================================== */
+      const mapMainChartSvg = document.getElementById("map-main-chart");
+
+      function renderEuroAreaChart(past4, forecasts) {
+        const W = 405;
+        const H = 205;
+        const padL = 34;
+        const padR = 14;
+        const padT = 14;
+        const padB = 26;
+        const plotW = W - padL - padR;
+        const plotH = H - padT - padB;
+
+        const allValues = [-2, 0, 2, 6];
+        past4.forEach((r, idx) => {
+          const rVal = idx === past4.length - 1 ? GameState.candidateKeyRate : r.keyRate;
+          allValues.push(rVal, r.inflation, r.production);
+        });
+        forecasts.forEach((f) => {
+          allValues.push(f.keyRate, f.inflMin, f.inflMax, f.prodMin, f.prodMax);
+        });
+
+        const minVal = Math.min(-2, Math.floor(Math.min(...allValues) / 2) * 2);
+        const maxVal = Math.max(6, Math.ceil(Math.max(...allValues) / 2) * 2);
+
+        function xPos(colIdx) {
+          return padL + (colIdx / 6) * plotW;
+        }
+
+        function yPos(val) {
+          const ratio = (val - minVal) / (maxVal - minVal || 1);
+          return padT + plotH - ratio * plotH;
+        }
+
+        const xNow = xPos(3);
+        const xEnd = xPos(6);
+        const colStep = plotW / 6;
+
+        let gridHtml = "";
+        const rangeSpan = maxVal - minVal;
+        const tickStep = rangeSpan > 14 ? 4 : 2;
+        for (let v = minVal; v <= maxVal; v += tickStep) {
+          const y = yPos(v);
+          const isZero = v === 0;
+          gridHtml += `
+            <line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}"
+              stroke="${isZero ? "#6c8075" : "#dce6e1"}" stroke-width="${isZero ? "1.5" : "1"}" />
+            <text x="${padL - 5}" y="${(y + 3.5).toFixed(1)}" text-anchor="end"
+              fill="#4f6373" font-size="9.5" font-weight="700">${v}%</text>
+          `;
+        }
+
+        const yTarget2 = yPos(2.0);
+        const target2Html = `
+          <line x1="${padL}" y1="${yTarget2.toFixed(1)}" x2="${W - padR}" y2="${yTarget2.toFixed(1)}"
+            stroke="#c48800" stroke-width="1.3" stroke-dasharray="4 3" />
+        `;
+
+        const zonesHtml = `
+          <rect x="${xNow.toFixed(1)}" y="${padT}" width="${(xEnd - xNow).toFixed(1)}" height="${plotH}"
+            fill="rgba(20, 51, 102, 0.045)" />
+          <rect x="${(xNow - colStep * 0.32).toFixed(1)}" y="${padT}" width="${(colStep * 0.64).toFixed(1)}" height="${plotH}"
+            fill="rgba(30, 90, 168, 0.11)" rx="3" />
+          <line x1="${xNow.toFixed(1)}" y1="${padT}" x2="${xNow.toFixed(1)}" y2="${padT + plotH}"
+            stroke="rgba(30, 90, 168, 0.4)" stroke-width="1.2" />
+        `;
+
+        const curr = past4[past4.length - 1];
+        const f1 = forecasts[0];
+        const f2 = forecasts[1];
+        const f3 = forecasts[2];
+
+        const prodFanPoints = [
+          `${xNow.toFixed(1)},${yPos(curr.production).toFixed(1)}`,
+          `${xPos(4).toFixed(1)},${yPos(f1.prodMax).toFixed(1)}`,
+          `${xPos(5).toFixed(1)},${yPos(f2.prodMax).toFixed(1)}`,
+          `${xPos(6).toFixed(1)},${yPos(f3.prodMax).toFixed(1)}`,
+          `${xPos(6).toFixed(1)},${yPos(f3.prodMin).toFixed(1)}`,
+          `${xPos(5).toFixed(1)},${yPos(f2.prodMin).toFixed(1)}`,
+          `${xPos(4).toFixed(1)},${yPos(f1.prodMin).toFixed(1)}`
+        ].join(" ");
+
+        const inflFanPoints = [
+          `${xNow.toFixed(1)},${yPos(curr.inflation).toFixed(1)}`,
+          `${xPos(4).toFixed(1)},${yPos(f1.inflMax).toFixed(1)}`,
+          `${xPos(5).toFixed(1)},${yPos(f2.inflMax).toFixed(1)}`,
+          `${xPos(6).toFixed(1)},${yPos(f3.inflMax).toFixed(1)}`,
+          `${xPos(6).toFixed(1)},${yPos(f3.inflMin).toFixed(1)}`,
+          `${xPos(5).toFixed(1)},${yPos(f2.inflMin).toFixed(1)}`,
+          `${xPos(4).toFixed(1)},${yPos(f1.inflMin).toFixed(1)}`
+        ].join(" ");
+
+        const rateHistPts = past4
+          .map((r, i) => {
+            const val = i === 3 ? GameState.candidateKeyRate : r.keyRate;
+            return `${xPos(i).toFixed(1)},${yPos(val).toFixed(1)}`;
+          })
+          .join(" ");
+
+        const inflHistPts = past4
+          .map((r, i) => `${xPos(i).toFixed(1)},${yPos(r.inflation).toFixed(1)}`)
+          .join(" ");
+
+        const prodHistPts = past4
+          .map((r, i) => `${xPos(i).toFixed(1)},${yPos(r.production).toFixed(1)}`)
+          .join(" ");
+
+        const rateFutPts = [
+          `${xNow.toFixed(1)},${yPos(GameState.candidateKeyRate).toFixed(1)}`,
+          ...forecasts.map((f, i) => `${xPos(4 + i).toFixed(1)},${yPos(f.keyRate).toFixed(1)}`)
+        ].join(" ");
+
+        const inflFutPts = [
+          `${xNow.toFixed(1)},${yPos(curr.inflation).toFixed(1)}`,
+          ...forecasts.map((f, i) => `${xPos(4 + i).toFixed(1)},${yPos(f.inflation).toFixed(1)}`)
+        ].join(" ");
+
+        const prodFutPts = [
+          `${xNow.toFixed(1)},${yPos(curr.production).toFixed(1)}`,
+          ...forecasts.map((f, i) => `${xPos(4 + i).toFixed(1)},${yPos(f.production).toFixed(1)}`)
+        ].join(" ");
+
+        let nodesHtml = "";
+        past4.forEach((r, i) => {
+          const cx = xPos(i).toFixed(1);
+          const rVal = i === 3 ? GameState.candidateKeyRate : r.keyRate;
+          nodesHtml += `
+            <circle cx="${cx}" cy="${yPos(r.production).toFixed(1)}" r="3.2" fill="#7a4b2a" stroke="#ffffff" stroke-width="1" />
+            <circle cx="${cx}" cy="${yPos(r.inflation).toFixed(1)}" r="3.5" fill="#e09f00" stroke="#ffffff" stroke-width="1" />
+            <circle cx="${cx}" cy="${yPos(rVal).toFixed(1)}" r="${i === 3 ? "4.5" : "3.2"}" fill="#1e5aa8" stroke="#ffffff" stroke-width="1.2" />
+          `;
+        });
+
+        let xAxisHtml = "";
+        past4.forEach((r, i) => {
+          const cx = xPos(i).toFixed(1);
+          const isCurrent = i === 3;
+          xAxisHtml += `
+            <text x="${cx}" y="${H - 7}" text-anchor="middle"
+              fill="${isCurrent ? "#143366" : "#5a6978"}"
+              font-size="${isCurrent ? "10.5" : "9.5"}"
+              font-weight="${isCurrent ? "900" : "700"}">${r.shortLabel}</text>
+          `;
+        });
+        xAxisHtml += `
+          <text x="${((xPos(4) + xPos(6)) / 2).toFixed(1)}" y="${H - 7}" text-anchor="middle"
+            fill="#143366" font-size="10.5" font-weight="900" font-style="italic">Future</text>
+        `;
+
+        mapMainChartSvg.innerHTML = `
+          ${zonesHtml}
+          ${gridHtml}
+          ${target2Html}
+          <polygon points="${prodFanPoints}" fill="rgba(122, 75, 42, 0.20)" stroke="rgba(122, 75, 42, 0.35)" stroke-width="0.8" />
+          <polygon points="${inflFanPoints}" fill="rgba(224, 159, 0, 0.28)" stroke="rgba(224, 159, 0, 0.45)" stroke-width="0.8" />
+          <polyline points="${prodFutPts}" fill="none" stroke="#7a4b2a" stroke-width="1.8" stroke-dasharray="4 3" />
+          <polyline points="${inflFutPts}" fill="none" stroke="#d49200" stroke-width="2" stroke-dasharray="4 3" />
+          <polyline points="${rateFutPts}" fill="none" stroke="#1e5aa8" stroke-width="1.8" stroke-dasharray="3 3" />
+          <polyline points="${prodHistPts}" fill="none" stroke="#7a4b2a" stroke-width="2.5" stroke-linecap="round" />
+          <polyline points="${inflHistPts}" fill="none" stroke="#e09f00" stroke-width="2.8" stroke-linecap="round" />
+          <polyline points="${rateHistPts}" fill="none" stroke="#1e5aa8" stroke-width="2
+<polyline points="${rateHistPts}" fill="none" stroke="#1e5aa8" stroke-width="3" stroke-linecap="round" />
+          ${nodesHtml}${xAxisHtml}
+        `;
+      }
+
+      /* ========================================================================
+         STEP 3.3: RENDER THREE-PANEL FORECAST CHARTS (INDICATORS TAB)
+         ======================================================================== */
+      function renderIndicatorsThreePanel() {
+        const forecasts = computeForecast(GameState.candidateKeyRate);
+        const past4 = GameState.history.slice(-4);
+        const curr = getCurrentRecord();
+
+        document.getElementById("ind-hdr-money").textContent = `${curr.moneyGrowth.toFixed(2)}%`;
+        document.getElementById("ind-hdr-infl").textContent = `${curr.inflation.toFixed(2)}%`;
+        document.getElementById("ind-hdr-prod").textContent = `${curr.production.toFixed(2)}%`;
+
+        // 1. Money Growth SVG Line Chart (Past 4 Quarters)
+        const moneySvg = document.getElementById("svg-ind-money");
+        if (moneySvg) {
+          const mVals = past4.map((r) => r.moneyGrowth);
+          const minM = Math.floor(Math.min(0, ...mVals));
+          const maxM = Math.ceil(Math.max(8, ...mVals));
+          const w = 280, h = 280, padL = 40, padR = 20, padT = 20, padB = 40;
+          const pw = w - padL - padR, ph = h - padT - padB;
+
+          function mx(i) { return padL + (i / 3) * pw; }
+          function my(v) { return padT + ph - ((v - minM) / (maxM - minM || 1)) * ph; }
+
+          let mGrid = "";
+          for (let v = minM; v <= maxM; v += 2) {
+            const y = my(v);
+            mGrid += `<line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="#dce6e1" stroke-width="1" />
+                      <text x="${padL - 6}" y="${y + 4}" text-anchor="end" fill="#5a6978" font-size="10" font-weight="700">${v}%</text>`;
+          }
+          const refY = my(4.50);
+          mGrid += `<line x1="${padL}" y1="${refY}" x2="${w - padR}" y2="${refY}" stroke="#538135" stroke-width="1.5" stroke-dasharray="4 3" />`;
+
+          const mPts = past4.map((r, i) => `${mx(i)},${my(r.moneyGrowth)}`).join(" ");
+          let mNodes = "";
+          past4.forEach((r, i) => {
+            mNodes += `<circle cx="${mx(i)}" cy="${my(r.moneyGrowth)}" r="5" fill="#538135" stroke="#ffffff" stroke-width="1.5" />`;
+          });
+          let mLabels = "";
+          past4.forEach((r, i) => {
+            mLabels += `<text x="${mx(i)}" y="${h - 15}" text-anchor="middle" fill="#394b58" font-size="10" font-weight="800">${r.shortLabel}</text>`;
+          });
+
+          moneySvg.innerHTML = `${mGrid}${mGrid ? "" : ""}<polyline points="${mPts}" fill="none" stroke="#538135" stroke-width="3" stroke-linecap="round" />${mNodes}${mLabels}`;
+        }
+
+        // 2. Inflation Rate SVG Fan Range Chart (3 Future Quarters)
+        const inflSvg = document.getElementById("svg-ind-infl");
+        if (inflSvg) {
+          renderFanRangeChart(inflSvg, curr.inflation, forecasts.map(f => ({
+            label: f.shortLabel,
+            val: f.inflation,
+            min: f.inflMin,
+            max: f.inflMax
+          })), "#e5a510", 2.0);
+        }
+
+        // 3. Production Growth SVG Fan Range Chart (3 Future Quarters)
+        const prodSvg = document.getElementById("svg-ind-prod");
+        if (prodSvg) {
+          renderFanRangeChart(prodSvg, curr.production, forecasts.map(f => ({
+            label: f.shortLabel,
+            val: f.production,
+            min: f.prodMin,
+            max: f.prodMax
+          })), "#8f5a34", 2.25);
+        }
+      }
+
+      function renderFanRangeChart(svgElem, currVal, futArr, colorHex, refVal) {
+        const w = 280, h = 280, padL = 40, padR = 20, padT = 20, padB = 40;
+        const pw = w - padL - padR, ph = h - padT - padB;
+
+        const allVals = [currVal, refVal, ...futArr.map(f => f.val), ...futArr.map(f => f.min), ...futArr.map(f => f.max)];
+        const minV = Math.floor(Math.min(-1, ...allVals));
+        const maxV = Math.ceil(Math.max(6, ...allVals));
+
+        function xPos(i) { return padL + (i / 3) * pw; }
+        function yPos(v) { return padT + ph - ((v - minV) / (maxV - minV || 1)) * ph; }
+
+        let grid = "";
+        for (let v = minV; v <= maxV; v += 2) {
+          const y = yPos(v);
+          grid += `<line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="#dce6e1" stroke-width="1" />
+                   <text x="${padL - 6}" y="${y + 4}" text-anchor="end" fill="#5a6978" font-size="10" font-weight="700">${v}%</text>`;
+        }
+        const refY = yPos(refVal);
+        grid += `<line x1="${padL}" y1="${refY}" x2="${w - padR}" y2="${refY}" stroke="${colorHex}" stroke-width="1.5" stroke-dasharray="4 3" />`;
+
+        // Polygon fan area
+        const polyPts = [
+          `${xPos(0)},${yPos(currVal)}`,
+          ...futArr.map((f, i) => `${xPos(i + 1)},${yPos(f.max)}`),
+          ...futArr.slice().reverse().map((f, i) => `${xPos(3 - i)},${yPos(f.min)}`)
+        ].join(" ");
+
+        const linePts = [
+          `${xPos(0)},${yPos(currVal)}`,
+          ...futArr.map((f, i) => `${xPos(i + 1)},${yPos(f.val)}`)
+        ].join(" ");
+
+        let nodes = `<circle cx="${xPos(0)}" cy="${yPos(currVal)}" r="5" fill="${colorHex}" stroke="#ffffff" stroke-width="1.5" />`;
+        futArr.forEach((f, i) => {
+          nodes += `<circle cx="${xPos(i + 1)}" cy="${yPos(f.val)}" r="4.5" fill="${colorHex}" stroke="#ffffff" stroke-width="1.5" />`;
+          nodes += `<circle cx="${xPos(i + 1)}" cy="${yPos(f.max)}" r="2.5" fill="${colorHex}" opacity="0.6" />`;
+          nodes += `<circle cx="${xPos(i + 1)}" cy="${yPos(f.min)}" r="2.5" fill="${colorHex}" opacity="0.6" />`;
+        });
+
+        let labels = `<text x="${xPos(0)}" y="${h - 15}" text-anchor="middle" fill="#394b58" font-size="10" font-weight="800">Now</text>`;
+        futArr.forEach((f, i) => {
+          labels += `<text x="${xPos(i + 1)}" y="${h - 15}" text-anchor="middle" fill="#394b58" font-size="10" font-weight="800">${f.label}</text>`;
+        });
+
+        svgElem.innerHTML = `${grid}<polygon points="${polyPts}" fill="${colorHex}" fill-opacity="0.22" /><polyline points="${linePts}" fill="none" stroke="${colorHex}" stroke-width="3" stroke-linecap="round" />${nodes}${labels}`;
+      }
+
+      /* ========================================================================
+         STEP 4.1: ADVISOR PERSONAS & COUNCIL ROOM INTERACTION
+         ======================================================================== */
+      const ADVISOR_PROFILES = [
+        {
+          id: 0,
+          name: "Lukas Weber",
+          role: "Economic Growth Analyst",
+          metricName: "PRODUCTION GROWTH",
+          getVal: () => `${getCurrentRecord().production.toFixed(2)}%`,
+          getHeadline: (curr) => curr.production < 1.5 ? "Production is stalling badly!" : curr.production > 3.2 ? "The economy is running red-hot!" : "Economic output is near potential.",
+          getBody: (curr) => `Current production growth stands at ${curr.production.toFixed(2)}%. Investment and factory orders across Eurozone member states respond directly to our Key Interest Rate. Lowering rates stimulates borrowing, while higher rates cool down overheating activity.`,
+          getTactical: (curr) => curr.production < 1.5 ? "Tactical Advice: Consider cutting the Key Interest Rate by 0.25% or 0.50% to revive industrial orders." : "Tactical Advice: Growth is healthy. Maintain steady rates unless inflation pressures demand action."
+        },
+        {
+          id: 1,
+          name: "Dr. Sofia Mendez",
+          role: "Inflation Risk Expert",
+          metricName: "INFLATION RATE",
+          getVal: () => `${getCurrentRecord().inflation.toFixed(2)}%`,
+          getHeadline: (curr) => curr.inflation > 2.1 ? "Price pressures are exceeding our ceiling!" : curr.inflation < 1.4 ? "Inflation is drifting below target!" : "Inflation is close to our 2% objective.",
+          getBody: (curr) => `Headline inflation is registering at ${curr.inflation.toFixed(2)}%. Our mandate requires keeping inflation below, but close to, 2% over the medium term. Watch out for second-round wage effects and volatile energy costs.`,
+          getTactical: (curr) => curr.inflation > 2.1 ? "Tactical Advice: Raise the Key Interest Rate promptly to anchor price expectations and cool demand." : "Tactical Advice: Inflation is well-behaved. Keep monitoring upcoming quarterly forecasts."
+        },
+        {
+          id: 2,
+          name: "Prof. Hans Becker",
+          role: "Monetary Pillar Specialist",
+          metricName: "MONEY GROWTH (M3)",
+          getVal: () => `${getCurrentRecord().moneyGrowth.toFixed(2)}%`,
+          getHeadline: (curr) => curr.moneyGrowth > 5.5 ? "Excess liquidity is fueling risks!" : "Broad money growth is moving steadily.",
+          getBody: (curr) => `M3 broad money growth is tracking at ${curr.moneyGrowth.toFixed(2)}% against our reference value of 4.50%. Rapid credit expansion and money creation often presage inflationary pressures 4 to 6 quarters ahead.`,
+          getTactical: (curr) => curr.moneyGrowth > 5.5 ? "Tactical Advice: Excessive money supply growth demands a precautionary rate hike." : "Tactical Advice: Money and credit aggregates are consistent with price stability."
+        },
+        {
+          id: 3,
+          name: "Marc Laurent",
+          role: "Employment & Consumer Advisor",
+          metricName: "UNEMPLOYMENT RATE",
+          getVal: () => `${getCurrentRecord().unemployment.toFixed(2)}%`,
+          getHeadline: (curr) => curr.unemployment > 8.0 ? "Unemployment remains uncomfortably high." : "Labor market conditions are stable.",
+          getBody: (curr) => `The Euro Area unemployment rate is ${getCurrentRecord().unemployment.toFixed(2)}%. While price stability is our primary mandate, sustainable economic growth directly supports job creation across member states.`,
+          getTactical: () => "Tactical Advice: Balance inflation control with support for economic recovery to protect jobs."
+        },
+        {
+          id: 4,
+          name: "Elena Vance",
+          role: "Chief Stability Advisor",
+          metricName: "STABILITY GAUGE",
+          getVal: () => `${getCurrentRecord().inflation.toFixed(2)}%`,
+          getHeadline: (curr) => Math.abs(curr.inflation - 1.9) < 0.25 ? "The Governing Council is hitting the sweet spot!" : "We need vigilance on the price front.",
+          getBody: () => `As Chief Stability Advisor, I coordinate our monetary policy strategy. Consistency and clear communication are our strongest tools for anchoring long-term inflation expectations across the euro area.`,
+          getTactical: () => "Tactical Advice: Keep your eyes on the 3-quarter forecast fan chart before confirming your quarterly interest rate decision."
+        }
+      ];
+
+      function renderCouncilRoom() {
+        const curr = getCurrentRecord();
+        const isStable = Math.abs(curr.inflation - 1.9) < 0.35 && curr.production > 1.8;
+
+        const maskElem = document.getElementById("chief-sleep-mask");
+        const eyesElem = document.getElementById("chief-awake-eyes");
+        if (maskElem && eyesElem) {
+          if (isStable) {
+            maskElem.style.display = "block";
+            eyesElem.style.display = "none";
+          } else {
+            maskElem.style.display = "none";
+            eyesElem.style.display = "block";
+          }
+        }
+
+        const quickStrip = document.getElementById("advisor-quick-strip");
+        if (quickStrip) {
+          quickStrip.innerHTML = ADVISOR_PROFILES.map((adv) => {
+            const valStr = adv.getVal();
+            const isUrgent = adv.id === 1 && (curr.inflation > 2.1 || curr.inflation < 1.4);
+            return `
+              <button type="button" class="advisor-chip-btn" data-advisor-id="${adv.id}">
+                <div class="advisor-chip-meta">
+                  <span class="advisor-chip-role">${adv.role.split(" ")[0]}</span>
+                  <span class="advisor-chip-status">${valStr}</span>
+                </div>
+                <div class="advisor-chip-dot ${isUrgent ? "urgent" : ""}">i</div>
+              </button>
+            `;
+          }).join("");
+
+          quickStrip.querySelectorAll(".advisor-chip-btn").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              const aid = parseInt(btn.getAttribute("data-advisor-id"), 10);
+              openAdvisorModal(aid);
+            });
+          });
+        }
+      }
+
+      function openAdvisorModal(advisorId) {
+        SoundEngine.playClick();
+        GameState.selectedAdvisorIndex = advisorId;
+        const adv = ADVISOR_PROFILES[advisorId];
+        const curr = getCurrentRecord();
+
+        document.getElementById("advisor-modal-role").textContent = adv.role;
+        document.getElementById("advisor-modal-name").textContent = adv.name;
+        document.getElementById("advisor-modal-metric-name").textContent = adv.metricName;
+        document.getElementById("advisor-modal-metric-val").textContent = adv.getVal();
+        document.getElementById("advisor-modal-headline").textContent = `"${adv.getHeadline(curr)}"`;
+        document.getElementById("advisor-modal-body").textContent = adv.getBody(curr);
+        document.getElementById("advisor-modal-tactical").textContent = adv.getTactical(curr);
+
+        document.getElementById("advisor-modal-art").innerHTML = `
+          <svg viewBox="0 0 160 160" width="130" height="130">
+            <circle cx="80" cy="80" r="72" fill="#143366" opacity="0.1" />
+            <circle cx="80" cy="65" r="32" fill="#f5cdb4" stroke="#c99b7e" stroke-width="2" />
+            <path d="M48,135 C48,98 112,98 112,135 Z" fill="#2b5cb0" stroke="#0c2144" stroke-width="2" />
+            <text x="80" y="75" text-anchor="middle" fill="#143366" font-size="28" font-weight="900">${advisorId + 1}</text>
+          </svg>
+        `;
+
+        document.getElementById("advisor-detail-modal").classList.remove("hidden");
+      }
+
+      document.querySelectorAll(".advisor-seat-group").forEach((group) => {
+        group.addEventListener("click", () => {
+          const aid = parseInt(group.getAttribute("data-advisor"), 10);
+          openAdvisorModal(aid);
+        });
+      });
+
+      document.getElementById("btn-adv-close").addEventListener("click", () => {
+        SoundEngine.playClick();
+        document.getElementById("advisor-detail-modal").classList.add("hidden");
+      });
+
+      document.getElementById("btn-adv-prev").addEventListener("click", () => {
+        SoundEngine.playClick();
+        const prevId = (GameState.selectedAdvisorIndex - 1 + ADVISOR_PROFILES.length) % ADVISOR_PROFILES.length;
+        openAdvisorModal(prevId);
+      });
+
+      document.getElementById("btn-adv-next").addEventListener("click", () => {
+        SoundEngine.playClick();
+        const nextId = (GameState.selectedAdvisorIndex + 1) % ADVISOR_PROFILES.length;
+        openAdvisorModal(nextId);
+      });
+
+      /* ========================================================================
+         STEP 4.2: PRESS ROOM NEWSPAPER FRONT PAGES & ZOOM MODAL
+         ======================================================================== */
+      const NEWSPAPER_TEMPLATES = [
+        {
+          name: "Financial Gazette",
+          getHeadline: (curr, shock) => shock ? shock.headline : (curr.inflation > 2.0 ? "Price Pressures Prompt ECB Vigilance" : "Eurozone Markets Maintain Steady Course"),
+          getSubdeck: (curr) => `Key Interest Rate held at ${curr.keyRate.toFixed(2)}% as analysts assess quarterly gross domestic product data.`,
+          getBody1: (curr) => ` Frankfurt — The Governing Council convened today amid continuing discussions regarding medium-term price stability. Financial markets reacted calmly to the latest monetary indicators, with bond yields remaining stable across major member states.`,
+          getBody2: (curr) => ` Economists note that transmission lags mean recent interest rate decisions will take several quarters to fully permeate bank lending rates and consumer retail prices.`
+        },
+        {
+          name: "The European Herald",
+          getHeadline: (curr, shock) => shock ? `Special Report: ${shock.title}` : (curr.production > 2.5 ? "Manufacturing Output Surges Across Euro Area" : "Consumer Spending Remains Resilient"),
+          getSubdeck: (curr) => `Unemployment rate edges to ${curr.unemployment.toFixed(2)}% while inflation registers at ${curr.inflation.toFixed(2)}%.`,
+          getBody1: (curr) => ` Brussels — Industrial production figures released this morning indicate steady momentum in core manufacturing sectors, supported by robust export demand and accommodative financing conditions.`,
+          getBody2: (curr) => ` Labor market participation continues to show positive resilience, though regional disparities persist across southern and northern member states.`
+        },
+        {
+          name: "Frankfurt Chronicle",
+          getHeadline: (curr, shock) => shock ? `Markets Digest ${shock.title} Impact` : (curr.inflation < 1.6 ? "Calls Grow for Easing as Inflation Softens" : "Central Bank Maintains Course on Price Stability"),
+          getSubdeck: () => `Governing Council emphasizes medium-term orientation and vigilance against upside risks.`,
+          getBody1: (curr) => ` Frankfurt — Speaking at a press conference following the rate decision, Governing Council members reiterated their unwavering commitment to anchoring inflation expectations firmly below, but close to, 2%.`,
+          getBody2: (curr) => ` Analysts will closely parse upcoming monetary aggregates and wage settlements for clues regarding the trajectory of interest rates in future quarters.`
+        }
+      ];
+
+      function renderPressRoom() {
+        const grid = document.getElementById("press-newspapers-grid");
+        if (!grid) return;
+        const curr = getCurrentRecord();
+        const shockObj = GameState.activeShock;
+        const dateStr = formatQuarterLabel(GameState.currentQuarter);
+
+        grid.innerHTML = NEWSPAPER_TEMPLATES.map((tmpl, idx) => {
+          const headline = tmpl.getHeadline(curr, shockObj);
+          const subdeck = tmpl.getSubdeck(curr);
+          const body1 = tmpl.getBody1(curr);
+          const body2 = tmpl.getBody2(curr);
+
+          return `
+            <article class="newspaper-sheet" data-paper-index="${idx}">
+              <div class="paper-masthead">
+                <div class="paper-name">${tmpl.name}</div>
+                <div class="paper-meta-strip">
+                  <span>${dateStr}</span>
+                  <span>Edition No. ${GameState.currentQuarter}</span>
+                </div>
+              </div>
+              <h3 class="paper-headline">${headline}</h3>
+              <p class="paper-subdeck">${subdeck}</p>
+              <div class="paper-photo-frame">
+                <svg viewBox="0 0 200 96" width="100%" height="100%">
+                  <rect width="200" height="96" fill="${idx === 0 ? "#dce6f0" : idx === 1 ? "#e8e0cc" : "#d8e8e2"}" />
+                  <path d="M0,70 Q50,${40 + idx * 10} 100,60 T200,50 L200,96 L0,96 Z" fill="${idx === 0 ? "#143366" : idx === 1 ? "#7a4b2a" : "#446e29"}" opacity="0.35" />
+                  <text x="100" y="52" text-anchor="middle" fill="#143366" font-family="Georgia,serif" font-size="13" font-weight="900">PHOTO ${idx + 1}</text>
+                </svg>
+              </div>
+              <div class="paper-columns">
+                <p>${body1}</p>
+                <p>${body2}</p>
+              </div>
+              <div class="paper-footer-tag">
+                <span>Euro Area Special</span>
+                <span>Read Full Article &rarr;</span>
+              </div>
+            </article>
+          `;
+        }).forEach((html) => {}); // Handled below
+
+        grid.innerHTML = NEWSPAPER_TEMPLATES.map((tmpl, idx) => {
+          const headline = tmpl.getHeadline(curr, shockObj);
+          const subdeck = tmpl.getSubdeck(curr);
+          const body1 = tmpl.getBody1(curr);
+          const body2 = tmpl.getBody2(curr);
+
+          return `
+            <article class="newspaper-sheet" data-paper-index="${idx}">
+              <div class="paper-masthead">
+                <div class="paper-name">${tmpl.name}</div>
+                <div class="paper-meta-strip">
+                  <span>${dateStr}</span>
+                  <span>Quarter ${GameState.currentQuarter}</span>
+                </div>
+              </div>
+              <h3 class="paper-headline">${headline}</h3>
+              <p class="paper-subdeck">${subdeck}</p>
+              <div class="paper-columns" style="column-count:2; margin-top:6px;">
+                <p>${body1}</p>
+                <p>${body2}</p>
+              </div>
+              <div class="paper-footer-tag">
+                <span>Click to expand</span>
+                <span>ECB Wire</span>
+              </div>
+            </article>
+          `;
+        }).join("");
+
+        grid.querySelectorAll(".newspaper-sheet").forEach((sheet) => {
+          sheet.addEventListener("click", () => {
+            const pIdx = parseInt(sheet.getAttribute("data-paper-index"), 10);
+            openPressZoom(pIdx);
+          });
+        });
+      }
+
+      function openPressZoom(paperIndex) {
+        SoundEngine.playTabSwitch("press");
+        const tmpl = NEWSPAPER_TEMPLATES[paperIndex];
+        const curr = getCurrentRecord();
+        const shockObj = GameState.activeShock;
+        const dateStr = formatQuarterLabel(GameState.currentQuarter);
+
+        document.getElementById("press-zoom-content").innerHTML = `
+          <div class="paper-masthead" style="border-bottom:3px solid #1f1d1a; padding-bottom:6px; margin-bottom:8px;">
+            <div class="paper-name" style="font-size:24px;">${tmpl.name}</div>
+            <div class="paper-meta-strip" style="font-size:11px;">
+              <span>European Central Bank Coverage</span>
+              <span>${dateStr}</span>
+            </div>
+          </div>
+          <h2 style="font-family:Georgia,serif; font-size:22px; font-weight:900; margin:8px 0 6px; color:#141311;">
+            ${tmpl.getHeadline(curr, shockObj)}
+          </h2>
+          <p style="font-family:Georgia,serif; font-size:13px; font-style:italic; margin:0 0 12px; color:#3d3932;">
+            ${tmpl.getSubdeck(curr)}
+          </p>
+          <div style="column-count:2; column-gap:20px; font-family:Georgia,serif; font-size:13px; line-height:1.55; color:#292622;">
+            <p>${tmpl.getBody1(curr)}</p>
+            <p>${tmpl.getBody2(curr)}</p>
+            <p>Governing Council members emphasized that monetary policy operates with a time lag of several quarters. Consequently, today's Key Interest Rate setting of ${curr.keyRate.toFixed(2)}% is calibrated to secure price stability over the medium term.</p>
+          </div>
+        `;
+
+        document.getElementById("press-zoom-modal").classList.remove("hidden");
+      }
+
+      document.getElementById("btn-close-press-zoom").addEventListener("click", () => {
+        SoundEngine.playClick();
+        document.getElementById("press-zoom-modal").classList.add("hidden");
+      });
+
+      /* ========================================================================
+         STEP 4.3: GLOSSARY ARTICLES & SEARCH ENCYCLOPEDIA
+         ======================================================================== */
+      const GLOSSARY_ARTICLES = [
+        {
+          id: "price_stability",
+          title: "Price Stability",
+          category: "ECB Mandate",
+          text: "The primary objective of the ECB's monetary policy is to maintain price stability. The Governing Council has defined price stability as inflation of below, but close to, 2.00% over the medium term. Anchoring inflation expectations prevents both damaging deflation spirals and runaway inflation.",
+          tip: "Keep average annual inflation close to 1.90% to secure Gold Stars!"
+        },
+        {
+          id: "key_interest_rate",
+          title: "Key Interest Rate",
+          category: "Monetary Policy",
+          text: "The Key Interest Rate is the primary instrument controlled by the Governing Council. By raising or lowering this rate, the ECB influences commercial bank borrowing costs, overall credit creation, consumer spending, and business investment across the Euro Area.",
+          tip: "Use the persistent slider at the bottom to adjust rates between 0.00% and 20.00%."
+        },
+        {
+          id: "inflation",
+          title: "Inflation",
+          category: "Macro Indicator",
+          text: "Inflation measures the annual percentage change in the Harmonised Index of Consumer Prices (HICP). When demand outstrips productive capacity, inflation rises. When economic slack emerges, inflation softens or turns negative.",
+          tip: "The 3-quarter forecast fan chart helps you anticipate future inflation trends."
+        },
+        {
+          id: "production_growth",
+          title: "Production Growth (GDP)",
+          category: "Macro Indicator",
+          text: "Production growth tracks the quarterly expansion of real Gross Domestic Product in the Euro Area. Robust GDP growth creates jobs and reduces unemployment, but can generate upward pressure on prices if capacity is strained.",
+          tip: "Economic shocks like stock crashes or oil hikes immediately impact GDP."
+        },
+        {
+          id: "money_growth",
+          title: "Money Growth (M3)",
+          category: "Monetary Analysis",
+          text: "Broad money (M3) encompasses currency in circulation, bank deposits, and marketable instruments. Under the ECB's two-pillar strategy, monetary analysis provides a cross-check for medium-term price trends.",
+          tip: "Rapid broad money expansion often precedes inflationary pressures."
+        },
+        {
+          id: "transmission_lag",
+          title: "Transmission Mechanism & Lags",
+          category: "Monetary Policy",
+          text: "Monetary policy decisions do not affect inflation and production instantly. Changes in the Key Interest Rate take anywhere from 4 to 8 quarters to fully transmit through the financial system to retail bank loans and consumer prices.",
+          tip: "Patience is key—avoid overreacting to single-quarter economic noise!"
+        },
+        {
+          id: "unemployment",
+          title: "Unemployment",
+          category: "Labor Market",
+          text: "The unemployment rate measures the percentage of the active labor force seeking work. While price stability is the ECB's overriding mandate, stable economic growth fosters job creation across the euro area.",
+          tip: "Deep recessions increase unemployment significantly."
+        },
+        {
+          id: "governing_council",
+          title: "Governing Council",
+          category: "ECB Institution",
+          text: "The Governing Council is the main decision-making body of the ECB. It comprises all members of the Executive Board and the governors of the national central banks of the euro area member countries.",
+          tip: "Consult your advisory team in the 'Your Team' tab for diverse council viewpoints."
+        }
+      ];
+
+      function renderGlossary(filterText = "") {
+        const termList = document.getElementById("glossary-term-list");
+        if (!termList) return;
+        const query = filterText.toLowerCase().trim();
+
+        const filtered = GLOSSARY_ARTICLES.filter((art) =>
+          art.title.toLowerCase().includes(query) ||
+          art.category.toLowerCase().includes(query) ||
+          art.text.toLowerCase().includes(query)
+        );
+
+        termList.innerHTML = filtered.map((art) => `
+          <button type="button" class="glossary-term-btn ${art.id === GameState.selectedGlossaryId ? "active" : ""}" data-glossary-id="${art.id}">
+            <span>${art.title}</span>
+            <span style="font-size:10px; opacity:0.75;">&rsaquo;</span>
+          </button>
+        `).join("");
+
+        termList.querySelectorAll(".glossary-term-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            SoundEngine.playClick();
+            GameState.selectedGlossaryId = btn.getAttribute("data-glossary-id");
+            renderGlossary(document.getElementById("glossary-search").value);
+            renderGlossaryArticle();
+          });
+        });
+
+        renderGlossaryArticle();
+      }
+
+      function renderGlossaryArticle() {
+        const card = document.getElementById("glossary-article-card");
+        if (!card) return;
+        const art = GLOSSARY_ARTICLES.find((a) => a.id === GameState.selectedGlossaryId) || GLOSSARY_ARTICLES[0];
+
+        card.innerHTML = `
+          <div>
+            <div class="glossary-art-header">
+              <h2 class="glossary-art-title">${art.title}</h2>
+              <span class="glossary-art-category">${art.category}</span>
+            </div>
+            <div class="glossary-body-grid">
+              <div class="glossary-text-col">
+                <p>${art.text}</p>
+                <p>In the context of €conomia, mastering this economic concept helps you set the optimal Key Interest Rate and navigate unexpected shocks successfully.</p>
+              </div>
+              <div class="glossary-diagram-box">
+                <svg viewBox="0 0 180 140" width="100%" height="100%">
+                  <rect width="180" height="140" rx="6" fill="#ffffff" stroke="#c9d9d0" stroke-width="1.2" />
+                  <circle cx="90" cy="55" r="28" fill="#143366" opacity="0.12" />
+                  <path d="M60,85 Q90,45 120,85" fill="none" stroke="#1e5aa8" stroke-width="3" stroke-linecap="round" />
+                  <circle cx="90" cy="55" r="6" fill="#f5b800" />
+                  <text x="90" y="115" text-anchor="middle" fill="#143366" font-family="Trebuchet MS,sans-serif" font-size="11" font-weight="900">${art.title.toUpperCase()}</text>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="glossary-tip-banner">
+            <span>💡 <strong>ECB Insight:</strong> ${art.tip}</span>
+          </div>
+        `;
+      }
+
+      const glossarySearchInput = document.getElementById("glossary-search");
+      if (glossarySearchInput) {
+        glossarySearchInput.addEventListener("input", (e) => {
+          renderGlossary(e.target.value);
+        });
+      }
+
+      /* ========================================================================
+         STEP 1.3A & 1.3B: SLIDER, HOTBAR & UI EVENT CONTROLLERS
+         ======================================================================== */
+      const sliderCallout = document.getElementById("slider-callout");
+      const sliderTrackArea = document.getElementById("slider-track-area");
+      const sliderFill = document.getElementById("slider-fill");
+      const rateDisplayValue = document.getElementById("rate-display-value");
+
+      function updateRateSliderUI(newRate) {
+        const clamped = Math.round(clamp(newRate, 0, 20) * 4) / 4;
+        GameState.candidateKeyRate = clamped;
+        rateDisplayValue.textContent = `${clamped.toFixed(2)}%`;
+        sliderCallout.setAttribute("aria-valuenow", clamped.toFixed(2));
+
+        const pct = (clamped / 20) * 100;
+        sliderCallout.style.left = `${pct}%`;
+        sliderFill.style.width = `${pct}%`;
+
+        SoundEngine.playSliderTick(clamped);
+
+        // Update live charts & pill preview
+        document.getElementById("pill-rate").textContent = `${clamped.toFixed(2)}%`;
+        renderEuroAreaChart(GameState.history.slice(-4), computeForecast(clamped));
+      }
+
+      let isDraggingSlider = false;
+
+      function handleSliderMove(clientX) {
+        const rect = sliderTrackArea.getBoundingClientRect();
+        const offsetX = clientX - rect.left;
+        const ratio = clamp(offsetX / rect.width, 0, 1);
+        const rawRate = ratio * 20;
+        const steppedRate = Math.round(rawRate * 4) / 4;
+        updateRateSliderUI(steppedRate);
+      }
+
+      sliderTrackArea.addEventListener("pointerdown", (e) => {
+        isDraggingSlider = true;
+        sliderTrackArea.setPointerCapture(e.pointerId);
+        handleSliderMove(e.clientX);
+      });
+
+      sliderTrackArea.addEventListener("pointermove", (e) => {
+        if (!isDraggingSlider) return;
+        handleSliderMove(e.clientX);
+      });
+
+      sliderTrackArea.addEventListener("pointerup", (e) => {
+        isDraggingSlider = false;
+        try { sliderTrackArea.releasePointerCapture(e.pointerId); } catch (err) {}
+      });
+
+      document.getElementById("btn-rate-dec").addEventListener("click", () => {
+        updateRateSliderUI(GameState.candidateKeyRate - 0.25);
+      });
+
+      document.getElementById("btn-rate-inc").addEventListener("click", () => {
+        updateRateSliderUI(GameState.candidateKeyRate + 0.25);
+      });
+
+      document.getElementById("action-ok-btn").addEventListener("click", () => {
+        advanceQuarter();
+      });
+
+      // Hotbar Tab Switching
+      document.querySelectorAll(".hotbar-tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          const target = tab.getAttribute("data-target");
+          switchView(target);
+        });
+      });
+
+      function switchView(viewName) {
+        SoundEngine.playTabSwitch(viewName);
+        GameState.activeTab = viewName;
+
+        document.querySelectorAll(".hotbar-tab").forEach((t) => {
+          t.classList.toggle("active", t.getAttribute("data-target") === viewName);
+        });
+
+        document.querySelectorAll(".game-view").forEach((v) => {
+          const isTarget = v.getAttribute("data-view") === viewName;
+          v.classList.toggle("active", isTarget);
+        });
+
+        // Clear badge on visited tab
+        const badge = document.getElementById(`badge-${viewName}`);
+        if (badge) badge.classList.add("hidden");
+
+        if (viewName === "indicators") {
+          renderIndicatorsThreePanel();
+        } else if (viewName === "team") {
+          renderCouncilRoom();
+        } else if (viewName === "press") {
+          renderPressRoom();
+        } else if (viewName === "glossary") {
+          renderGlossary();
+        } else if (viewName === "map") {
+          renderEuroAreaChart(GameState.history.slice(-4), computeForecast(GameState.candidateKeyRate));
+        }
+      }
+
+      /* ========================================================================
+         STEP 1.2: RENDER TIMELINE, SPEEDOMETER GAUGE & MAP THEMES
+         ======================================================================== */
+      function renderTimelineBar() {
+        const bar = document.getElementById("timeline-bar");
+        if (!bar) return;
+
+        let html = "";
+        for (let yr = 1; yr <= 8; yr++) {
+          const calYr = GameState.startYear + yr - 1;
+          const isActiveYr = Math.floor((GameState.currentQuarter - 1) / 4) === yr - 1;
+          const starEarned = GameState.starsEarned[yr - 1];
+
+          let qDotsHtml = "";
+          for (let qInYr = 1; qInYr <= 4; qInYr++) {
+            const qNum = (yr - 1) * 4 + qInYr;
+            let dotClass = "";
+            if (qNum < GameState.currentQuarter) dotClass = "passed";
+            else if (qNum === GameState.currentQuarter) dotClass = "current";
+
+            qDotsHtml += `<span class="q-dot ${dotClass}" title="Year ${yr} Q${qInYr} (Quarter ${qNum})"></span>`;
+          }
+
+          html += `
+            <div class="year-block ${isActiveYr ? "active-year" : ""}">
+              <div class="year-star-slot">
+                <svg class="star-icon ${starEarned ? "earned" : ""}" viewBox="0 0 24 24">
+                  <polygon points="12,2 15,9 22,9.5 17,14.5 18.5,21.5 12,18 5.5,21.5 7,14.5 2,9.5 9,9" />
+                </svg>
+              </div>
+              <span class="year-label">${calYr}</span>
+              <div class="quarter-dots">${qDotsHtml}</div>
+            </div>
+          `;
+        }
+        bar.innerHTML = html;
+      }
+
+      function renderStabilityGauge() {
+        const curr = getCurrentRecord();
+        const infl = curr.inflation;
+        const needle = document.getElementById("gauge-needle");
+        const statusText = document.getElementById("gauge-status-text");
+
+        // Map inflation from [-1% to 5%] to needle angle [-75deg to +75deg]
+        const clampedInf = clamp(infl, -1.0, 5.0);
+        const angle = -75 + ((clampedInf + 1.0) / 6.0) * 150;
+        if (needle) {
+          needle.style.transform = `rotate(${angle.toFixed(1)}deg)`;
+        }
+
+        if (statusText) {
+          let label = "STABLE";
+          if (infl < 1.0) label = "DEFLATION RISK";
+          else if (infl < 1.4) label = "TOO LOW";
+          else if (infl > 2.5) label = "TOO HIGH";
+          else if (infl > 2.05) label = "ELEVATED";
+          statusText.textContent = `${label} (${infl.toFixed(2)}%)`;
+        }
+      }
+
+      function updateMetricPills() {
+        const curr = getCurrentRecord();
+        const prev = getPreviousRecord();
+
+        function setPill(valId, deltaId, currVal, prevVal, decimals = 2, suffix = "%", invertGood = false) {
+          document.getElementById(valId).textContent = `${currVal.toFixed(decimals)}${suffix}`;
+          const diff = currVal - prevVal;
+          const sign = diff >= 0 ? "+" : "";
+          const deltaElem = document.getElementById(deltaId);
+          deltaElem.textContent = `${sign}${diff.toFixed(decimals)}${suffix}`;
+        }
+
+        setPill("pill-rate", "delta-rate", curr.keyRate, prev.keyRate);
+        setPill("pill-infl", "delta-infl", curr.inflation, prev.inflation);
+        setPill("pill-prod", "delta-prod", curr.production, prev.production);
+        setPill("pill-money", "delta-money", curr.moneyGrowth, prev.moneyGrowth);
+        setPill("pill-unemp", "delta-unemp", curr.unemployment, prev.unemployment);
+
+        document.getElementById("readout-period").textContent =
+          `${formatQuarterLabel(GameState.currentQuarter)} [${GameState.currentQuarter}/32]`;
+      }
+
+      function updateMapThemeVisuals() {
+        const stageContainer = document.getElementById("map-stage-container");
+        const topLayer = document.getElementById("euro-3d-top");
+        const wallLayer = document.getElementById("euro-3d-wall");
+
+        const propsNormal = document.getElementById("props-normal");
+        const propsBear = document.getElementById("props-bear");
+        const propsFlood = document.getElementById("props-flood");
+        const propsWinter = document.getElementById("props-winter");
+
+        stageContainer.classList.remove("theme-bear", "theme-flood", "theme-winter");
+        propsNormal.style.display = "none";
+        propsBear.style.display = "none";
+        propsFlood.style.display = "none";
+        propsWinter.style.display = "none";
+
+        if (GameState.mapTheme === "bear") {
+          stageContainer.classList.add("theme-bear");
+          topLayer.setAttribute("fill", "url(#landBear)");
+          wallLayer.setAttribute("fill", "#8f6829");
+          propsBear.style.display = "block";
+        } else if (GameState.mapTheme === "flood") {
+          stageContainer.classList.add("theme-flood");
+          topLayer.setAttribute("fill", "url(#landFlood)");
+          wallLayer.setAttribute("fill", "#447862");
+          propsFlood.style.display = "block";
+        } else if (GameState.mapTheme === "winter") {
+          stageContainer.classList.add("theme-winter");
+          topLayer.setAttribute("fill", "url(#landWinter)");
+          wallLayer.setAttribute("fill", "#90b0c7");
+          propsWinter.style.display = "block";
+        } else {
+          topLayer.setAttribute("fill", "url(#landNormal)");
+          wallLayer.setAttribute("fill", "#3b6321");
+          propsNormal.style.display = "block";
+        }
+      }
+
+      function showShockPopup(shockObj) {
+        document.getElementById("shock-popup-title").textContent = shockObj.title;
+        document.getElementById("shock-popup-desc").textContent = shockObj.description;
+
+        document.getElementById("shock-popup-art-box").innerHTML = `
+          <svg viewBox="0 0 255 92" width="100%" height="100%">
+            <rect width="255" height="92" fill="${shockObj.mapTheme === "bear" ? "#e6dbc8" : shockObj.mapTheme === "flood" ? "#b5d0db" : "#dce8f2"}" />
+            <circle cx="127.5" cy="46" r="32" fill="#143366" opacity="0.12" />
+            <text x="127.5" y="52" text-anchor="middle" fill="#143366" font-size="16" font-weight="900">${shockObj.title.toUpperCase()}</text>
+          </svg>
+        `;
+
+        document.getElementById("map-shock-popup").classList.remove("hidden");
+      }
+
+      document.getElementById("btn-close-shock-popup").addEventListener("click", () => {
+        SoundEngine.playClick();
+        document.getElementById("map-shock-popup").classList.add("hidden");
+      });
+
+      // Mini Debug Shock Buttons
+      document.querySelectorAll(".mini-shock-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const sKey = btn.getAttribute("data-shock");
+          GameState.forcedNextShockId = sKey;
+          advanceQuarter();
+        });
+      });
+
+      /* ========================================================================
+         STEP 5.1: WELCOME SCREEN, REGISTRATION & SYSTEM MODALS
+         ======================================================================== */
+      const welcomeOverlay = document.getElementById("welcome-overlay");
+      const registrationModal = document.getElementById("registration-modal");
+      const loaderOverlay = document.getElementById("loader-overlay");
+      const systemModalOverlay = document.getElementById("system-modal-overlay");
+
+      document.getElementById("btn-welcome-enter").addEventListener("click", () => {
+        SoundEngine.playClick();
+        welcomeOverlay.classList.add("hidden");
+        registrationModal.classList.remove("hidden");
+      });
+
+      document.getElementById("btn-welcome-help").addEventListener("click", () => {
+        SoundEngine.playClick();
+        openSystemModal("help");
+      });
+
+      document.getElementById("btn-welcome-audio").addEventListener("click", () => {
+        SoundEngine.muted = !SoundEngine.muted;
+        document.getElementById("btn-welcome-audio").textContent = SoundEngine.muted ? "🔇 Sound: OFF" : "🔊 Sound: ON";
+        document.getElementById("btn-audio").textContent = SoundEngine.muted ? "🔇" : "🔊";
+      });
+
+      document.getElementById("btn-reg-close").addEventListener("click", () => {
+        SoundEngine.playClick();
+        registrationModal.classList.add("hidden");
+        welcomeOverlay.classList.remove("hidden");
+      });
+
+      document.getElementById("registration-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById("input-player-name").value.trim();
+        const ageInput = parseInt(document.getElementById("input-player-age").value, 10);
+        const errDiv = document.getElementById("reg-error-msg");
+
+        if (nameInput.length < 3) {
+          errDiv.textContent = "Please enter a name with at least 3 characters.";
+          return;
+        }
+
+        GameState.playerName = nameInput;
+        GameState.playerAge = ageInput;
+        document.getElementById("header-player-tag").textContent = `Pres. ${GameState.playerName}`;
+
+        SoundEngine.playClick();
+        registrationModal.classList.add("hidden");
+        runScenarioLoader();
+      });
+
+      function runScenarioLoader() {
+        loaderOverlay.classList.remove("hidden");
+        const dots = loaderOverlay.querySelectorAll(".loader-dot");
+        let litCount = 0;
+
+        const interval = setInterval(() => {
+          if (litCount < dots.length) {
+            dots[litCount].classList.add("lit");
+            litCount++;
+          } else {
+            clearInterval(interval);
+            setTimeout(() => {
+              loaderOverlay.classList.add("hidden");
+              initGameState();
+              renderAll();
+            }, 350);
+          }
+        }, 120);
+      }
+
+      // Universal System Modal (Help, Hall of Fame, Credits, Share, etc.)
+      document.querySelectorAll("[data-sys-modal]").forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          const mType = link.getAttribute("data-sys-modal");
+          openSystemModal(mType);
+        });
+      });
+
+      document.getElementById("logo-home-btn").addEventListener("click", () => {
+        openSystemModal("help");
+      });
+
+      document.getElementById("btn-help").addEventListener("click", () => {
+        openSystemModal("help");
+      });
+
+      document.getElementById("btn-audio").addEventListener("click", () => {
+        SoundEngine.muted = !SoundEngine.muted;
+        document.getElementById("btn-audio").textContent = SoundEngine.muted ? "🔇" : "🔊";
+      });
+
+      document.getElementById("btn-sys-modal-close").addEventListener("click", () => {
+        SoundEngine.playClick();
+        systemModalOverlay.classList.add("hidden");
+      });
+
+      document.getElementById("btn-endgame-hof").addEventListener("click", () => {
+        SoundEngine.playClick();
+        document.getElementById("endgame-modal").classList.add("hidden");
+        openSystemModal("hall-of-fame");
+      });
+
+      document.getElementById("btn-endgame-replay").addEventListener("click", () => {
+        SoundEngine.playClick();
+        document.getElementById("endgame-modal").classList.add("hidden");
+        welcomeOverlay.classList.remove("hidden");
+      });
+
+      function openSystemModal(modalType) {
+        SoundEngine.playClick();
+        const titleElem = document.getElementById("sys-modal-title");
+        const bodyElem = document.getElementById("sys-modal-body");
+
+        if (modalType === "help" || modalType === "disclaimer" || modalType === "licence") {
+          titleElem.textContent = modalType === "help" ? "How to Play €conomia" : modalType.toUpperCase();
+          bodyElem.innerHTML = `
+            <h3 style="margin-top:0; color:var(--ecb-navy);">Governing Council Guidelines</h3>
+            <p><strong>Objective:</strong> Keep average annual inflation below, but close to, 2.00% over your 8-year (32-quarter) presidential mandate.</p>
+            <p><strong>Key Interest Rate:</strong> Use the persistent slider at the bottom of the stage to raise or lower borrowing costs by 0.25% increments each quarter.</p>
+            <p><strong>Time Lags:</strong> Monetary policy takes 4 to 8 quarters to fully impact inflation and production. Exercise patience and anticipate shocks.</p>
+            <p><strong>Advisors & Press:</strong> Consult your Council advisors in Tab 2 and read dynamic front pages in Tab 4 for tactical insights.</p>
+            <div style="margin-top:16px; text-align:right;">
+              <button type="button" class="adv-btn primary" onclick="document.getElementById('system-modal-overlay').classList.add('hidden')">Got It</button>
+            </div>
+          `;
+        } else if (modalType === "hall-of-fame") {
+          titleElem.textContent = "Governing Council Hall of Fame";
+          const hofEntries = loadHallOfFame();
+          bodyElem.innerHTML = `
+            <p style="margin-top:0;">The legendary Presidents who have steered the European Central Bank:</p>
+            <table class="hof-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>President</th>
+                  <th>Age</th>
+                  <th>Stars</th>
+                  <th>Avg. Inflation</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${hofEntries.map((entry, idx) => `
+                  <tr class="${entry.isPlayer ? "current-player-row" : ""}">
+                    <td>#${idx + 1}</td>
+                    <td>${entry.name}${entry.isPlayer ? "⭐ (You)" : ""}</td>
+                    <td>${entry.age}</td>
+                    <td>${entry.stars} / 8</td>
+                    <td>${entry.avgInflation.toFixed(2)}%</td>
+                    <td><strong>${entry.score.toLocaleString()} pts</strong></td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+            <div style="margin-top:14px; text-align:right;">
+              <button type="button" class="adv-btn primary" onclick="document.getElementById('system-modal-overlay').classList.add('hidden')">Close</button>
+            </div>
+          `;
+        } else if (modalType === "credits" || modalType === "share" || modalType === "new-game") {
+          titleElem.textContent = modalType === "credits" ? "Credits" : modalType === "share" ? "Share Scorecard" : "Restart Game";
+          bodyElem.innerHTML = `
+            <h3 style="margin-top:0; color:var(--ecb-navy);">€conomia – Complete Web App Replica</h3>
+            <p>A faithful reproduction of the European Central Bank's classic educational simulation game, featuring the Two-Pillar Macroeconomic Model, 3D Isometric Euro Area map, Web Audio synthesizer, and Hall of Fame register.</p>
+            <div style="margin-top:16px; text-align:right;">
+              <button type="button" class="adv-btn primary" onclick="document.getElementById('system-modal-overlay').classList.add('hidden')">Close</button>
+            </div>
+          `;
+        }
+
+        systemModalOverlay.classList.remove("hidden");
+      }
+
+      function renderAll() {
+        renderTimelineBar();
+        renderStabilityGauge();
+        updateMetricPills();
+        updateMapThemeVisuals();
+
+        if (GameState.activeTab === "map") {
+          renderEuroAreaChart(GameState.history.slice(-4), computeForecast(GameState.candidateKeyRate));
+        } else if (GameState.activeTab === "indicators") {
+          renderIndicatorsThreePanel();
+        } else if (GameState.activeTab === "team") {
+          renderCouncilRoom();
+        } else if (GameState.activeTab === "press") {
+          renderPressRoom();
+        } else if (GameState.activeTab === "glossary") {
+          renderGlossary();
+        }
+      }
+
+      // Initial boot render
+      updateRateSliderUI(2.00);
+      renderAll();
+
+    })();
+  </script>
+</body>
+</html>
