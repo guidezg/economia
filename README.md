@@ -29,7 +29,14 @@ Your primary mandate is to keep annual inflation **below, but close to, 2.00%** 
 
 ## 🚀 Getting Started
 
-This project is built as a **single, self-contained HTML file** with zero external dependencies, build steps, or assets required. Playable through GitHub Pages.
+This project is built as a **single, self-contained HTML file** with zero external dependencies, build steps, or assets required.
+
+1. Clone or download the repository:
+```bash
+git clone https://github.com/your-username/economia-ecb-replica.git
+```
+2. Open `economia_the_monetary_policy_game.html` in any modern web browser.
+3. Click **ENTER**, register your name and age for the Hall of Fame, and start your mandate!
 
 ---
 
