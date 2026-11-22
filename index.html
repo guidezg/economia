@@ -2098,6 +2098,66 @@
       padding-top: 12px;
       border-top: 1px solid #d5e0da;
     }
+    
+    /* ==========================================================================
+       PORTRAIT / VERTICAL SCREEN ADAPTATIONS
+       ========================================================================== */
+    body.portrait-mode .map-view-layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1.15fr 1fr;
+    }
+
+    /* Put the 3D Eurozone Map on top and the Data Chart + Pills below */
+    body.portrait-mode .map-right-stage {
+      order: -1;
+    }
+
+    body.portrait-mode #map-main-chart {
+      height: 100%;
+      max-height: 280px;
+    }
+
+    /* Stack the 3 Indicators charts vertically */
+    body.portrait-mode .indicators-three-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: repeat(3, 1fr);
+    }
+
+    body.portrait-mode .ind-panel-svg {
+      height: 100%;
+      max-height: 220px;
+    }
+
+    /* Stack the 3 Newspapers vertically in Press Room */
+    body.portrait-mode .press-Three-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: repeat(3, 1fr);
+    }
+
+    body.portrait-mode .newspaper-sheet {
+      transform: none !important;
+    }
+
+    /* Stack Advisor Portrait & Speech Bubble vertically in Team Modal */
+    body.portrait-mode #advisor-detail-modal {
+      grid-template-columns: 1fr;
+      grid-template-rows: 240px 1fr;
+    }
+
+    /* Stack Glossary Sidebar above Article */
+    body.portrait-mode .glossary-layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: 220px 1fr;
+    }
+
+    /* Slightly taller bottom controls for comfortable thumb taps */
+    body.portrait-mode #rate-control-bar {
+      height: 68px;
+    }
+
+    body.portrait-mode #hotbar-nav {
+      height: 76px;
+    }
   </style>
 </head>
 <body>
@@ -3095,14 +3155,29 @@
       "use strict";
 
       /* ------------------------------------------------------------------------
-         1. Responsive Stage Auto-Scaler (Preserves 960x640 Aspect Ratio)
+         1. Responsive Stage Auto-Scaler (Organic Portrait & Landscape)
          ------------------------------------------------------------------------ */
       const stageWrapper = document.getElementById("stage-wrapper");
       function resizeStage() {
-        const scaleX = window.innerWidth / 960;
-        const scaleY = window.innerHeight / 640;
-        const scale = Math.min(scaleX, scaleY, 1.38) * 0.96;
-        stageWrapper.style.transform = `scale(${scale.toFixed(4)})`;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const isPortrait = vh > vw;
+
+        if (isPortrait) {
+          document.body.classList.add("portrait-mode");
+          // Scale cleanly to screen width, and expand stage height to fill the screen
+          const scale = (vw / 960) * 0.98;
+          const dynamicHeight = Math.max(640, Math.round((vh / scale) * 0.98));
+          stageWrapper.style.width = "960px";
+          stageWrapper.style.height = `${dynamicHeight}px`;
+          stageWrapper.style.transform = `scale(${scale.toFixed(4)})`;
+        } else {
+          document.body.classList.remove("portrait-mode");
+          const scale = Math.min(vw / 960, vh / 640) * 0.98;
+          stageWrapper.style.width = "960px";
+          stageWrapper.style.height = "640px";
+          stageWrapper.style.transform = `scale(${scale.toFixed(4)})`;
+        }
       }
       window.addEventListener("resize", resizeStage);
       resizeStage();
