@@ -1496,6 +1496,7 @@
       z-index: 20;
       min-width: 132px;
       cursor: grab;
+      touch-action: manipulation; /* Eliminates the 300ms double-tap zoom delay */
     }
 
     #slider-callout:active {
@@ -1566,6 +1567,23 @@
       background: rgba(0, 0, 0, 0.25);
       padding: 1px 6px;
       border-radius: 3px;
+      cursor: text;
+    }
+
+    #rate-inline-input {
+      width: 62px;
+      font-family: var(--font-main);
+      font-size: 15px;
+      font-weight: 900;
+      color: #143366;
+      background: #ffffff;
+      border: 1px solid var(--euro-gold);
+      border-radius: 3px;
+      padding: 0 4px;
+      text-align: center;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
     }
 
     #action-ok-btn {
@@ -2100,21 +2118,55 @@
     }
     
     /* ==========================================================================
-       PORTRAIT / VERTICAL SCREEN ADAPTATIONS
+       PORTRAIT / VERTICAL SCREEN ADAPTATIONS (PHONE & TABLET)
        ========================================================================== */
-    body.portrait-mode .map-view-layout {
-      grid-template-columns: 1fr;
-      grid-template-rows: 1.15fr 1fr;
+    #stage-wrapper {
+      flex-shrink: 0; /* Prevents narrow screens from squishing the stage width */
     }
 
-    /* Put the 3D Eurozone Map on top and the Data Chart + Pills below */
+    /* Wrap top header cleanly so timeline & gauge fit inside 480px phone width */
+    body.portrait-mode #top-header {
+      height: auto;
+      flex-wrap: wrap;
+      padding: 6px 10px;
+      gap: 6px;
+    }
+
+    body.portrait-mode .timeline-container {
+      order: 3;
+      width: 100%;
+      justify-content: space-between;
+      margin-top: 2px;
+      padding: 4px 6px;
+      gap: 2px;
+    }
+
+    body.portrait-mode .year-block {
+      padding: 2px 2px;
+    }
+
+    body.portrait-mode .year-label {
+      font-size: 9.5px;
+    }
+
+    body.portrait-mode .q-dot {
+      width: 6px;
+      height: 6px;
+    }
+
+    /* Stack Map & Data vertically */
+    body.portrait-mode .map-view-layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1.1fr 1fr;
+    }
+
     body.portrait-mode .map-right-stage {
       order: -1;
     }
 
     body.portrait-mode #map-main-chart {
       height: 100%;
-      max-height: 280px;
+      max-height: 240px;
     }
 
     /* Stack the 3 Indicators charts vertically */
@@ -2125,10 +2177,10 @@
 
     body.portrait-mode .ind-panel-svg {
       height: 100%;
-      max-height: 220px;
+      max-height: 200px;
     }
 
-    /* Stack the 3 Newspapers vertically in Press Room */
+    /* Stack the 3 Newspapers vertically */
     body.portrait-mode .press-Three-grid {
       grid-template-columns: 1fr;
       grid-template-rows: repeat(3, 1fr);
@@ -2138,25 +2190,41 @@
       transform: none !important;
     }
 
-    /* Stack Advisor Portrait & Speech Bubble vertically in Team Modal */
+    /* Fit Advisor Modal & Glossary to narrow screen */
     body.portrait-mode #advisor-detail-modal {
       grid-template-columns: 1fr;
-      grid-template-rows: 240px 1fr;
+      grid-template-rows: 190px 1fr;
     }
 
-    /* Stack Glossary Sidebar above Article */
     body.portrait-mode .glossary-layout {
       grid-template-columns: 1fr;
-      grid-template-rows: 220px 1fr;
+      grid-template-rows: 180px 1fr;
     }
 
-    /* Slightly taller bottom controls for comfortable thumb taps */
+    body.portrait-mode .glossary-body-grid {
+      grid-template-columns: 1fr;
+    }
+
+    /* Fit Welcome Screen illustration & footer on narrow screens */
+    body.portrait-mode .welcome-art-container {
+      width: 100%;
+      height: auto;
+    }
+
+    body.portrait-mode #system-footer {
+      flex-wrap: wrap;
+      height: auto;
+      padding: 4px 10px;
+      gap: 6px;
+    }
+
+    /* Comfortable thumb-sized controls */
     body.portrait-mode #rate-control-bar {
-      height: 68px;
+      height: 64px;
     }
 
     body.portrait-mode #hotbar-nav {
-      height: 76px;
+      height: 68px;
     }
   </style>
 </head>
@@ -3155,7 +3223,7 @@
       "use strict";
 
       /* ------------------------------------------------------------------------
-         1. Responsive Stage Auto-Scaler (Organic Portrait & Landscape)
+         1. Responsive Stage Auto-Scaler (Phone, Tablet & Desktop)
          ------------------------------------------------------------------------ */
       const stageWrapper = document.getElementById("stage-wrapper");
       function resizeStage() {
@@ -3165,10 +3233,12 @@
 
         if (isPortrait) {
           document.body.classList.add("portrait-mode");
-          // Scale cleanly to screen width, and expand stage height to fill the screen
-          const scale = (vw / 960) * 0.98;
+          // Use a 480px base width on phones (< 650px), and 760px on vertical tablets
+          const baseWidth = vw < 650 ? 480 : 760;
+          const scale = (vw / baseWidth) * 0.98;
           const dynamicHeight = Math.max(640, Math.round((vh / scale) * 0.98));
-          stageWrapper.style.width = "960px";
+
+          stageWrapper.style.width = `${baseWidth}px`;
           stageWrapper.style.height = `${dynamicHeight}px`;
           stageWrapper.style.transform = `scale(${scale.toFixed(4)})`;
         } else {
@@ -4615,6 +4685,100 @@
       }
 
       let isDraggingSlider = false;
+      let isEditingRate = false;
+      let lastTapTime = 0;
+
+      function parseAndApplyRateInput(rawStr) {
+        if (!rawStr) return false;
+        // Strip spaces and '%' symbol, normalize comma to decimal point
+        let cleaned = rawStr.trim().replace(/%/g, "").replace(/,/g, ".");
+        // Handle leading decimal like ".5" or "-.5"
+        if (cleaned.startsWith(".")) cleaned = "0" + cleaned;
+        if (cleaned.startsWith("-.")) cleaned = "-0" + cleaned.slice(1);
+
+        const parsed = parseFloat(cleaned);
+        if (isNaN(parsed)) return false;
+
+        // Clamp to [0, 20] and round to nearest 0.25
+        const clamped = clamp(parsed, 0, 20);
+        const rounded = Math.round(clamped * 4) / 4;
+        updateRateSliderUI(rounded);
+        return true;
+      }
+
+      function openInlineRateEditor() {
+        if (isEditingRate) return;
+        isEditingRate = true;
+        isDraggingSlider = false;
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.inputMode = "decimal";
+        input.id = "rate-inline-input";
+        input.value = GameState.candidateKeyRate.toFixed(2);
+        input.setAttribute("aria-label", "Type Key Interest Rate");
+
+        input.addEventListener("pointerdown", (e) => e.stopPropagation());
+        input.addEventListener("click", (e) => e.stopPropagation());
+
+        const openedAt = Date.now();
+        let committed = false;
+
+        function commitAndClose(applyValue) {
+          if (committed) return;
+          committed = true;
+          isEditingRate = false;
+
+          if (applyValue) {
+            const ok = parseAndApplyRateInput(input.value);
+            if (!ok) updateRateSliderUI(GameState.candidateKeyRate);
+          } else {
+            updateRateSliderUI(GameState.candidateKeyRate);
+          }
+
+          if (input.parentNode) {
+            input.replaceWith(rateDisplayValue);
+          }
+        }
+
+        input.addEventListener("keydown", (e) => {
+          e.stopPropagation();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commitAndClose(true);
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            commitAndClose(false);
+          }
+        });
+
+        // Ignore accidental blur events triggered during the second tap's release
+        input.addEventListener("blur", () => {
+          if (Date.now() - openedAt < 150) {
+            input.focus();
+            input.select();
+            return;
+          }
+          commitAndClose(true);
+        });
+
+        rateDisplayValue.replaceWith(input);
+        input.focus();
+        input.select();
+      }
+
+      // Unified rapid double-tap / double-click handler
+      rateDisplayValue.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        const now = Date.now();
+        if (now - lastTapTime < 400) {
+          e.preventDefault(); // Prevents second tap from stealing focus/blurring the input
+          lastTapTime = 0;
+          openInlineRateEditor();
+        } else {
+          lastTapTime = now;
+        }
+      });
 
       function handleSliderMove(clientX) {
         const rect = sliderTrackArea.getBoundingClientRect();
@@ -4626,13 +4790,14 @@
       }
 
       sliderTrackArea.addEventListener("pointerdown", (e) => {
+        if (isEditingRate) return;
         isDraggingSlider = true;
         sliderTrackArea.setPointerCapture(e.pointerId);
         handleSliderMove(e.clientX);
       });
 
       sliderTrackArea.addEventListener("pointermove", (e) => {
-        if (!isDraggingSlider) return;
+        if (!isDraggingSlider || isEditingRate) return;
         handleSliderMove(e.clientX);
       });
 
